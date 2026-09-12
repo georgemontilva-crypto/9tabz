@@ -9,6 +9,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { runMigrations } from "../migrate";
+import { mirrorExternalReportsIfRequested } from "../mirrorReports";
 import { seedCatalogIfRequested } from "../seed";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -36,6 +37,8 @@ async function startServer() {
   await runMigrations();
   // After the migrations, so the tables it writes into exist on a fresh database.
   await seedCatalogIfRequested();
+  // After the seed, so newly-seeded external links are picked up in one pass.
+  await mirrorExternalReportsIfRequested();
 
   const app = express();
   const server = createServer(app);

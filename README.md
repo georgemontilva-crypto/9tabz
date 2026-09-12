@@ -64,6 +64,7 @@ como agotado.
 | `JWT_SECRET` | Firma de la sesión del admin | Sí |
 | `ADMIN_SETUP_TOKEN` | Secreto para crear el **primer** admin. Ver abajo | Sí, al inicio |
 | `SEED_CATALOG` | `true` carga el catálogo inicial al arrancar. Borrar después | No |
+| `MIRROR_REPORTS` | `true` copia a R2 los PDF enlazados. Borrar después | No |
 | `R2_ACCOUNT_ID` | Cloudflare R2 | Para subir PDF |
 | `R2_ACCESS_KEY_ID` | Cloudflare R2 | Para subir PDF |
 | `R2_SECRET_ACCESS_KEY` | Cloudflare R2 | Para subir PDF |
@@ -164,7 +165,7 @@ El orden importa: los reportes y los códigos cuelgan de un producto.
      Botanical Extract`).
 2. **Lab Reports** — subir el PDF, asociarlo al producto y anotar el lote.
    En el panel, cada reporte se puede **subir** (va a R2) o **enlazar** por URL
-   si ya está alojado en otro lado.
+   si ya está alojado en otro lado. Ver "Pasar los enlazados a R2" abajo.
 3. **Verification Codes** — elegir producto, lote y número de consultas; después
    importar el archivo del cliente (CSV o TXT, uno por línea o separados por comas)
    o pegar la lista.
@@ -178,6 +179,32 @@ Cada código admite además, desde la tabla:
 - **Desactivar** — deja de validar sin importar el conteo.
 - **Resetear conteo** — le devuelve su cupo completo, para cuando un cliente
   legítimo reporta que gastó sus consultas por error.
+
+---
+
+## Pasar los enlazados a R2
+
+Un reporte añadido por URL no guarda `fileKey`: el archivo vive en el servidor de
+otro. Eso funciona hasta que ese servidor se mueve o caduca, y entonces se rompen
+todos los COA del sitio a la vez sin que nada en nuestra base pueda repararlo.
+
+Para quedarnos con copias propias:
+
+**En el servidor**: `MIRROR_REPORTS=true` en Railway, esperar el deploy,
+comprobar `[Mirror] Done.` en los logs y **borrar la variable**.
+
+**Desde tu máquina**: `DATABASE_URL="..." pnpm mirror-reports`
+
+Es idempotente: una fila que ya tiene `fileKey` es nuestra y se salta, así que
+volver a correrlo después de enlazar dos reportes más solo copia esos dos.
+
+Descarta cualquier respuesta que no empiece con `%PDF`, porque un 404 de
+WordPress llega como un 200 con HTML dentro y guardarlo como COA cambiaría un
+enlace externo que funciona por uno local roto.
+
+> **Hazlo con el dominio propio ya conectado al bucket.** Las URLs se guardan
+> completas: si copias con la Public Development URL (`pub-….r2.dev`) y después
+> conectas el dominio, quedan apuntando a la vieja.
 
 ---
 
