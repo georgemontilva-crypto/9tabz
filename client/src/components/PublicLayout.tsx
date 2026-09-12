@@ -9,34 +9,19 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-black">
-      {/* Announcement bar. It points at the reports page, so on that page it
-          would link to itself; there it carries the batch-matching hint instead
-          of disappearing and shifting the whole layout up. */}
       <div className="text-center" style={{ backgroundColor: GOLD }}>
-        {onLabReports ? (
-          <p className="px-4 py-2.5 text-sm font-bold text-white">
-            Match the batch number on your package to the report
-          </p>
-        ) : (
-          <Link
-            href="/lab-reports"
-            className="block px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-80"
-          >
-            See all lab reports here
-          </Link>
-        )}
+        <Link
+          href="/lab-reports"
+          className="block px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-80"
+        >
+          See all lab reports here
+        </Link>
       </div>
 
       <header className="bg-black">
         <div className="container flex h-28 items-center justify-center">
           <Link href="/" aria-label={`${BRAND_NAME} home`}>
-            <img
-              src="/brand/logo.png"
-              alt={BRAND_NAME}
-              className="h-12 w-auto sm:h-14"
-              width={640}
-              height={242}
-            />
+            <Logo className="h-12 sm:h-14" />
           </Link>
         </div>
       </header>
@@ -81,17 +66,34 @@ function NavLink({
   );
 }
 
+/**
+ * The white glow behind the mark is a filter rather than part of the artwork:
+ * a tight bright ring for the edge and a wider soft one for the falloff. Doing
+ * it here instead of baking it into the PNG keeps it crisp at whatever size the
+ * logo renders, and keeps the file usable on a light background, where a baked
+ * white halo would be invisible at best.
+ */
+function Logo({ className = "" }: { className?: string }) {
+  return (
+    <img
+      src="/brand/logo.png"
+      alt={BRAND_NAME}
+      width={640}
+      height={242}
+      className={`w-auto ${className}`}
+      style={{
+        filter:
+          "drop-shadow(0 0 3px rgba(255,255,255,0.95)) drop-shadow(0 0 9px rgba(255,255,255,0.55))",
+      }}
+    />
+  );
+}
+
 function SiteFooter() {
   return (
     <footer className="mt-16">
       <div className="bg-black px-5 pb-8 pt-14 text-center">
-        <img
-          src="/brand/logo.png"
-          alt={BRAND_NAME}
-          className="mx-auto h-9 w-auto"
-          width={640}
-          height={242}
-        />
+        <Logo className="mx-auto h-9" />
 
         <div className="mx-auto mt-12 max-w-4xl">
           <p className="text-sm text-white">FDA Disclaimer:</p>
