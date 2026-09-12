@@ -67,11 +67,12 @@ function NavLink({
 }
 
 /**
- * The white glow behind the mark is a filter rather than part of the artwork:
- * a tight bright ring for the edge and a wider soft one for the falloff. Doing
- * it here instead of baking it into the PNG keeps it crisp at whatever size the
- * logo renders, and keeps the file usable on a light background, where a baked
- * white halo would be invisible at best.
+ * The white glow behind the mark is a filter rather than part of the artwork.
+ * It is deliberately tight — it reads as a lit edge on the outline rather than
+ * a halo spreading into the black around it. Doing it here instead of baking it
+ * into the PNG keeps it crisp at whatever size the logo renders, and keeps the
+ * file usable on a light background, where a baked white halo would be
+ * invisible at best.
  */
 function Logo({ className = "" }: { className?: string }) {
   return (
@@ -83,7 +84,7 @@ function Logo({ className = "" }: { className?: string }) {
       className={`w-auto ${className}`}
       style={{
         filter:
-          "drop-shadow(0 0 3px rgba(255,255,255,0.95)) drop-shadow(0 0 9px rgba(255,255,255,0.55))",
+          "drop-shadow(0 0 1px rgba(255,255,255,0.85)) drop-shadow(0 0 2.5px rgba(255,255,255,0.4))",
       }}
     />
   );
