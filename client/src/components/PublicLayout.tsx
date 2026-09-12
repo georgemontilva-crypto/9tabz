@@ -5,13 +5,13 @@ const GOLD = "#c9a900";
 
 export function PublicLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const onLabReports = location.startsWith("/lab-reports");
+  const onVerify = location.startsWith("/verify");
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-black">
       <div className="text-center" style={{ backgroundColor: GOLD }}>
         <Link
-          href="/lab-reports"
+          href="/"
           className="block px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-80"
         >
           See all lab reports here
@@ -28,10 +28,10 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
 
       <nav className="border-b border-black/10 bg-white">
         <div className="container flex items-center justify-center gap-1 py-1">
-          <NavLink href="/lab-reports" active={onLabReports}>
+          <NavLink href="/" active={!onVerify}>
             Lab Reports
           </NavLink>
-          <NavLink href="/" active={!onLabReports}>
+          <NavLink href="/verify" active={onVerify}>
             Verify Your Code
           </NavLink>
         </div>

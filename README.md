@@ -3,8 +3,8 @@
 Sitio de verificación de autenticidad de producto. Dos páginas públicas y un panel
 de administración:
 
-- `/` — **Verify Your Code**: el cliente escribe el código de la etiqueta rascable.
-- `/lab-reports` — **Lab Reports**: certificados de análisis (PDF) agrupados por producto.
+- `/` — **Lab Reports** (home): certificados de análisis (PDF) agrupados por producto.
+- `/verify` — **Verify Your Code**: el cliente escribe el código de la etiqueta rascable.
 - `/admin` — panel: códigos, productos, reportes, logs y cuentas de admin.
 
 Marca: **9Tabz** — negro, amarillo (`#ffe81f`) y blanco, sin degradados.
@@ -19,6 +19,11 @@ React 19 + Vite + wouter · tRPC 11 + Express · Drizzle ORM + MySQL · Cloudfla
 Tailwind 4 · desplegado en Railway.
 
 ---
+
+`/lab-reports` redirige a `/`, y `/?code=XXXX` reenvía a `/verify?code=XXXX`:
+los códigos impresos en el empaque sobreviven a los cambios de rutas del sitio,
+así que un QR viejo apuntando a la raíz no debe dejar al cliente en una lista de
+PDF con su código descartado en silencio.
 
 ## Cómo funciona la verificación
 

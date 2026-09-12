@@ -1,5 +1,5 @@
-import { useLayoutEffect } from "react";
-import { Route, Switch, useLocation } from "wouter";
+import { useEffect, useLayoutEffect } from "react";
+import { Redirect, Route, Switch, useLocation } from "wouter";
 
 import LabReports from "@/pages/LabReports";
 import NotFound from "@/pages/NotFound";
@@ -35,15 +35,42 @@ function ScrollToTop() {
   return null;
 }
 
+/**
+ * The root is the lab reports page.
+ *
+ * It still answers `/?code=…` by handing off to the verification page, because
+ * codes printed on packaging outlive the site's routing: a QR pointing at the
+ * old root would otherwise drop the customer on a list of PDFs with their code
+ * silently discarded. The redirect carries the code across and replaces the
+ * history entry, so Back returns to wherever they came from rather than
+ * bouncing through here again.
+ */
+function Home() {
+  const [, navigate] = useLocation();
+  const code =
+    typeof window === "undefined"
+      ? null
+      : new URLSearchParams(window.location.search).get("code");
+
+  useEffect(() => {
+    if (code) navigate(`/verify?code=${encodeURIComponent(code)}`, { replace: true });
+  }, [code, navigate]);
+
+  return code ? null : <LabReports />;
+}
+
 export default function App() {
   return (
     <>
       <ScrollToTop />
       <Switch>
         {/* Public */}
-        <Route path="/" component={Verify} />
+        <Route path="/" component={Home} />
         <Route path="/verify" component={Verify} />
-        <Route path="/lab-reports" component={LabReports} />
+        {/* Lab reports moved to the root; kept so older links still land. */}
+        <Route path="/lab-reports">
+          <Redirect to="/" replace />
+        </Route>
 
         {/* Admin */}
         <Route path="/admin/login" component={AdminLogin} />
