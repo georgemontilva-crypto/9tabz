@@ -52,14 +52,18 @@ export function AdminLayout({ title, children }: { title: string; children: Reac
     href === "/admin" ? location === "/admin" : location.startsWith(href);
 
   return (
-    <div className="flex min-h-screen bg-neutral-100 text-neutral-900">
+    // h-screen + overflow-hidden rather than min-h-screen: the sidebar and the
+    // header stay put and only the content column scrolls. With min-h-screen
+    // the menu rode up with the page, so changing section from the bottom of a
+    // long table meant scrolling all the way back up first.
+    <div className="flex h-screen overflow-hidden bg-neutral-100 text-neutral-900">
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 w-64 transform bg-neutral-900 text-neutral-300 transition-transform duration-300 md:static md:translate-x-0",
+          "fixed inset-y-0 left-0 z-40 flex w-64 transform flex-col bg-neutral-900 text-neutral-300 transition-transform duration-300 md:static md:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="flex h-16 items-center justify-between border-b border-white/15 px-5">
+        <div className="flex h-16 shrink-0 items-center justify-between border-b border-white/15 px-5">
           <Link href="/admin" className="text-sm font-bold tracking-[0.2em] text-white uppercase">
             {BRAND_NAME} Admin
           </Link>
@@ -67,7 +71,7 @@ export function AdminLayout({ title, children }: { title: string; children: Reac
             <X className="h-5 w-5" />
           </button>
         </div>
-        <nav className="space-y-1 p-3">
+        <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto p-3">
           {NAV.map((item) => (
             <Link
               key={item.href}
@@ -85,7 +89,9 @@ export function AdminLayout({ title, children }: { title: string; children: Reac
             </Link>
           ))}
         </nav>
-        <div className="absolute inset-x-0 bottom-0 border-t border-white/15 p-3">
+        {/* Pinned by flex, not absolute positioning: as an absolute block it sat
+            on top of the last nav item on short screens. */}
+        <div className="shrink-0 border-t border-white/15 p-3">
           <div className="truncate px-3.5 pb-2 text-xs text-neutral-300">{admin.email}</div>
           <button
             onClick={() => logout.mutate()}
@@ -101,8 +107,8 @@ export function AdminLayout({ title, children }: { title: string; children: Reac
         <div className="fixed inset-0 z-30 bg-black/40 md:hidden" onClick={() => setOpen(false)} />
       )}
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-4 border-b border-neutral-200 bg-white px-5">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="z-20 flex h-16 shrink-0 items-center gap-4 border-b border-neutral-200 bg-white px-5">
           <button className="md:hidden" onClick={() => setOpen(true)}>
             <Menu className="h-5 w-5" />
           </button>
@@ -114,7 +120,7 @@ export function AdminLayout({ title, children }: { title: string; children: Reac
             View site →
           </Link>
         </header>
-        <div className="flex-1 p-5 md:p-8">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-5 md:p-8">{children}</div>
       </div>
     </div>
   );

@@ -346,9 +346,13 @@ export default function AdminCodes() {
         </form>
 
         <TableCard>
-          <div className="overflow-x-auto">
+          {/* The table scrolls inside its own box instead of letting the page
+              grow. At 50 rows a page, page-level scrolling pushes the search
+              field and the paginator off screen exactly when they're needed.
+              The header stays stuck so it's still clear which column is which. */}
+          <div className="max-h-[60vh] overflow-auto">
             <table className="w-full text-sm">
-              <thead className="border-b border-neutral-200 bg-neutral-50 text-left text-xs uppercase tracking-wider text-neutral-500">
+              <thead className="sticky top-0 z-10 border-b border-neutral-200 bg-neutral-50 text-left text-xs uppercase tracking-wider text-neutral-500">
                 <tr>
                   <th className="px-5 py-3 font-semibold">Code</th>
                   <th className="px-5 py-3 font-semibold">Product</th>
