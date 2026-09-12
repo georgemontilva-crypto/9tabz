@@ -21,6 +21,10 @@ export default function AdminLabReports() {
   const [lab, setLab] = useState("");
   const [testedOn, setTestedOn] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  // Reports already hosted elsewhere (the WordPress uploads folder, say) can be
+  // linked instead of re-uploaded, so the same PDF isn't stored twice.
+  const [mode, setMode] = useState<"upload" | "link">("upload");
+  const [externalUrl, setExternalUrl] = useState("");
 
   const { upload, progress, isUploading } = useR2Upload();
 
@@ -37,6 +41,7 @@ export default function AdminLabReports() {
       setLab("");
       setTestedOn("");
       setFile(null);
+      setExternalUrl("");
       refresh();
       toast.success("Lab report published");
     },
@@ -53,15 +58,33 @@ export default function AdminLabReports() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (productId === "" || !title.trim() || !file) return;
+    if (productId === "" || !title.trim()) return;
+
+    const base = {
+      productId: Number(productId),
+      title: title.trim(),
+      batch: batch.trim() || null,
+      lab: lab.trim() || null,
+      testedOn: testedOn || null,
+    };
+
+    if (mode === "link") {
+      const url = externalUrl.trim();
+      if (!url) return;
+      create.mutate({
+        ...base,
+        fileUrl: url,
+        fileKey: "",
+        fileName: url.split("/").pop() || null,
+      });
+      return;
+    }
+
+    if (!file) return;
     try {
       const up = await upload(file, "lab-report");
       create.mutate({
-        productId: Number(productId),
-        title: title.trim(),
-        batch: batch.trim() || null,
-        lab: lab.trim() || null,
-        testedOn: testedOn || null,
+        ...base,
         fileUrl: up.publicUrl,
         fileKey: up.storageKey,
         fileName: up.fileName,
@@ -137,14 +160,42 @@ export default function AdminLabReports() {
             </Field>
           </div>
 
-          <Field label="PDF file">
-            <input
-              type="file"
-              accept="application/pdf,.pdf"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              className="block w-full text-sm text-neutral-600 file:mr-3 file:rounded-lg file:border-0 file:bg-neutral-950 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-neutral-800"
-            />
-          </Field>
+          <div className="flex gap-2">
+            {(["upload", "link"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setMode(m)}
+                className={
+                  mode === m
+                    ? "rounded-xl bg-neutral-950 px-4 py-2 text-sm font-semibold text-white"
+                    : "rounded-xl border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-600 hover:bg-neutral-50"
+                }
+              >
+                {m === "upload" ? "Upload a PDF" : "Link an existing PDF"}
+              </button>
+            ))}
+          </div>
+
+          {mode === "upload" ? (
+            <Field label="PDF file">
+              <input
+                type="file"
+                accept="application/pdf,.pdf"
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                className="block w-full text-sm text-neutral-600 file:mr-3 file:rounded-lg file:border-0 file:bg-neutral-950 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-neutral-800"
+              />
+            </Field>
+          ) : (
+            <Field label="PDF URL" hint="The file stays where it is; only the link is saved.">
+              <input
+                value={externalUrl}
+                onChange={(e) => setExternalUrl(e.target.value)}
+                placeholder="https://…/COA.pdf"
+                className={inputClass}
+              />
+            </Field>
+          )}
 
           {isUploading && (
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-neutral-200">
@@ -158,7 +209,12 @@ export default function AdminLabReports() {
           <div>
             <button
               type="submit"
-              disabled={busy || productId === "" || !title.trim() || !file}
+              disabled={
+                busy ||
+                productId === "" ||
+                !title.trim() ||
+                (mode === "upload" ? !file : !externalUrl.trim())
+              }
               className={buttonClass}
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}

@@ -120,6 +120,24 @@ pnpm test                 # vitest
 pnpm build                # cliente + bundle del servidor
 ```
 
+### Cargar el catálogo inicial
+
+```bash
+DATABASE_URL="..." pnpm seed
+```
+
+Crea los cinco sabores de **9 M-KREA™ COMPLEX** (Berry, Blue Razz, Cherry,
+Unflavored, Watermelon) con su COA de California.
+
+Es idempotente y aditivo: un producto cuyo slug ya existe se deja intacto, y un
+reporte cuya URL ya está registrada no se vuelve a insertar. Correrlo de nuevo
+sobre una base que el cliente ya editó no deshace su trabajo.
+
+Los PDF se **enlazan** donde ya viven (`get9tabz.com/wp-content/uploads/...`) en
+vez de copiarse a R2: el mismo archivo en dos sitios es una cosa más que
+mantener sincronizada cuando se retestea un lote. Las imágenes de producto son
+estáticas, en `client/public/products/`.
+
 ---
 
 ## Flujo de uso del panel
@@ -135,6 +153,8 @@ El orden importa: los reportes y los códigos cuelgan de un producto.
    - **Subtitle** es la línea gris de la tarjeta (ej. `4x TABS 100 MG/TAB –
      Botanical Extract`).
 2. **Lab Reports** — subir el PDF, asociarlo al producto y anotar el lote.
+   En el panel, cada reporte se puede **subir** (va a R2) o **enlazar** por URL
+   si ya está alojado en otro lado.
 3. **Verification Codes** — elegir producto, lote y número de consultas; después
    importar el archivo del cliente (CSV o TXT, uno por línea o separados por comas)
    o pegar la lista.
@@ -158,6 +178,8 @@ Todo lo que lee el visitante y no se administra desde el panel está en
 `DEFAULT_MAX_VERIFICATIONS`. Renombrar el sitio es editar ahí, más el `<title>` de
 `client/index.html`.
 
-El logo está como texto (`Wordmark` en `client/src/components/PublicLayout.tsx`),
-usado en el header y en el footer. Para poner el archivo real se reemplaza ese
-componente por un `<img>` y queda cambiado en los dos sitios.
+El logo está en `client/public/brand/logo.png` (PNG con transparencia, recortado
+del original sobre blanco). Se usa en el header y en el footer.
+
+El disclaimer de la FDA y la línea de copyright están en el componente
+`SiteFooter` de `client/src/components/PublicLayout.tsx`.

@@ -196,7 +196,13 @@ export const catalogRouter = appRouterFactory({
         lab: z.string().max(255).nullable().optional(),
         testedOn: z.string().max(32).nullable().optional(),
         fileUrl: z.string().min(1).max(1024),
-        fileKey: z.string().min(1).max(512),
+        /**
+         * Empty for a report that lives somewhere else (an existing WordPress
+         * upload, for instance). Deleting such a row removes the row only: there
+         * is no object of ours in the bucket to remove, and guessing at one
+         * would mean deleting a file we never put there.
+         */
+        fileKey: z.string().max(512).default(""),
         fileName: z.string().max(255).nullable().optional(),
         sizeBytes: z.number().int().nonnegative().nullable().optional(),
         sortOrder: z.number().int().default(0),
