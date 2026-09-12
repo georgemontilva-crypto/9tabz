@@ -1,4 +1,5 @@
 import { trpc } from "@/lib/trpc";
+import { BRAND_NAME } from "@shared/const";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
@@ -37,7 +38,10 @@ export default function AdminLogin() {
   };
 
   const pending = login.isPending || setup.isPending;
-  const error = login.isError || setup.isError;
+  // The server's own message, not a generic line: "Admin setup is disabled on
+  // this server" and "Invalid setup token" are different problems with
+  // different fixes, and collapsing them into one sentence hides which is which.
+  const error = login.error?.message ?? setup.error?.message ?? null;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-neutral-950 p-5 text-white">
@@ -47,12 +51,12 @@ export default function AdminLogin() {
             <ShieldCheck className="h-5 w-5" />
           </div>
           <h1 className="mt-4 font-display text-2xl font-bold">
-            {needsSetup ? "Create Admin Account" : "Beri Admin"}
+            {needsSetup ? "Create Admin Account" : `${BRAND_NAME} Admin`}
           </h1>
           <p className="mt-1 text-sm text-neutral-400">
             {needsSetup
               ? "No admin exists yet. Enter the setup token to create the first administrator."
-              : "Sign in to manage Beri Disposable."}
+              : `Sign in to manage ${BRAND_NAME}.`}
           </p>
 
           {setupStatus.isLoading ? (
@@ -106,13 +110,7 @@ export default function AdminLogin() {
                   placeholder={needsSetup ? "At least 8 characters" : ""}
                 />
               </div>
-              {error && (
-                <p className="text-sm text-red-400">
-                  {needsSetup
-                    ? "Could not create admin. Check the setup token."
-                    : "Invalid credentials."}
-                </p>
-              )}
+              {error && <p className="text-sm text-red-400">{error}</p>}
               <button
                 type="submit"
                 disabled={pending}
