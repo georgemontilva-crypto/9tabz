@@ -48,6 +48,7 @@ export const catalogRouter = appRouterFactory({
       id: p.id,
       slug: p.slug,
       name: p.name,
+      collection: p.collection,
       subtitle: p.subtitle,
       description: p.description,
       imageUrl: p.imageUrl,
@@ -110,6 +111,7 @@ export const catalogRouter = appRouterFactory({
       z.object({
         name: z.string().min(1).max(255),
         slug: z.string().max(160).optional(),
+        collection: z.string().max(255).nullable().optional(),
         subtitle: z.string().max(255).nullable().optional(),
         description: z.string().nullable().optional(),
         imageUrl: z.string().max(1024).nullable().optional(),
@@ -119,7 +121,11 @@ export const catalogRouter = appRouterFactory({
       })
     )
     .mutation(async ({ input }) => {
-      const slug = slugify(input.slug || input.name);
+      // Two lines can both have a "Berry", so the slug is seeded with the
+      // collection when there is one, rather than colliding on the flavour name.
+      const slug = slugify(
+        input.slug || [input.collection, input.name].filter(Boolean).join(" ")
+      );
       if (!slug) throw new TRPCError({ code: "BAD_REQUEST", message: "Could not derive a slug" });
       if (await db.getProductBySlug(slug)) {
         throw new TRPCError({ code: "CONFLICT", message: `A product with slug "${slug}" already exists` });
@@ -127,6 +133,7 @@ export const catalogRouter = appRouterFactory({
       const product = await db.createProduct({
         slug,
         name: input.name.trim(),
+        collection: input.collection?.trim() || null,
         subtitle: input.subtitle ?? null,
         description: input.description ?? null,
         imageUrl: input.imageUrl ?? null,
@@ -142,6 +149,7 @@ export const catalogRouter = appRouterFactory({
       z.object({
         id: z.number().int(),
         name: z.string().min(1).max(255).optional(),
+        collection: z.string().max(255).nullable().optional(),
         subtitle: z.string().max(255).nullable().optional(),
         description: z.string().nullable().optional(),
         imageUrl: z.string().max(1024).nullable().optional(),

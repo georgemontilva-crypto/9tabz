@@ -12,9 +12,9 @@ export const THIRTY_DAYS_MS = 1000 * 60 * 60 * 24 * 30;
  * Brand-facing strings. Everything the visitor reads that isn't managed from the
  * admin panel lives here, so renaming the site is one edit rather than a grep.
  */
-export const BRAND_NAME = "Endless7";
-export const BRAND_DOMAIN = "endless7.com";
-export const SUPPORT_EMAIL = "support@endless7.com";
+export const BRAND_NAME = "9Tabz";
+export const BRAND_DOMAIN = "9tabz.com";
+export const SUPPORT_EMAIL = "support@9tabz.com";
 
 /** Default number of times a single code may be verified before it stops working. */
 export const DEFAULT_MAX_VERIFICATIONS = 3;

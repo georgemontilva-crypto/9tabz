@@ -7,6 +7,8 @@ de administración:
 - `/lab-reports` — **Lab Reports**: certificados de análisis (PDF) agrupados por producto.
 - `/admin` — panel: códigos, productos, reportes, logs y cuentas de admin.
 
+Marca: **9Tabz** — negro, amarillo (`#ffe81f`) y blanco, sin degradados.
+
 Base clonada de `georgemontilva-crypto/beri-disposable`.
 
 ---
@@ -124,8 +126,14 @@ pnpm build                # cliente + bundle del servidor
 
 El orden importa: los reportes y los códigos cuelgan de un producto.
 
-1. **Products** — crear el producto (nombre tal como debe salir en el resultado de
-   la verificación, subtítulo, imagen opcional).
+1. **Products** — crear el producto. Tres campos definen cómo se ve en la página
+   pública:
+   - **Product line** (ej. `9 M-KREA™ COMPLEX`) es el encabezado bajo el que se
+     agrupan las tarjetas. Es texto libre: los productos con el mismo texto caen
+     en el mismo grupo. Los que no tengan ninguno van a "Other products".
+   - **Name** es el sabor o variante (ej. `Berry`).
+   - **Subtitle** es la línea gris de la tarjeta (ej. `4x TABS 100 MG/TAB –
+     Botanical Extract`).
 2. **Lab Reports** — subir el PDF, asociarlo al producto y anotar el lote.
 3. **Verification Codes** — elegir producto, lote y número de consultas; después
    importar el archivo del cliente (CSV o TXT, uno por línea o separados por comas)
@@ -149,3 +157,7 @@ Todo lo que lee el visitante y no se administra desde el panel está en
 `shared/const.ts`: `BRAND_NAME`, `BRAND_DOMAIN`, `SUPPORT_EMAIL` y
 `DEFAULT_MAX_VERIFICATIONS`. Renombrar el sitio es editar ahí, más el `<title>` de
 `client/index.html`.
+
+El logo está como texto (`Wordmark` en `client/src/components/PublicLayout.tsx`),
+usado en el header y en el footer. Para poner el archivo real se reemplaza ese
+componente por un `<img>` y queda cambiado en los dos sitios.

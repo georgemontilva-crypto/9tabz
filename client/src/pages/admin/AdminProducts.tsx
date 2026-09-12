@@ -10,6 +10,7 @@ export default function AdminProducts() {
   const products = trpc.catalog.adminProducts.useQuery(undefined, { retry: false });
 
   const [name, setName] = useState("");
+  const [collection, setCollection] = useState("");
   const [subtitle, setSubtitle] = useState("");
   const [description, setDescription] = useState("");
 
@@ -22,6 +23,7 @@ export default function AdminProducts() {
   const create = trpc.catalog.createProduct.useMutation({
     onSuccess: () => {
       setName("");
+      setCollection("");
       setSubtitle("");
       setDescription("");
       refresh();
@@ -42,6 +44,7 @@ export default function AdminProducts() {
             if (name.trim()) {
               create.mutate({
                 name: name.trim(),
+                collection: collection.trim() || null,
                 subtitle: subtitle.trim() || null,
                 description: description.trim() || null,
               });
@@ -49,12 +52,20 @@ export default function AdminProducts() {
           }}
           className="grid gap-4"
         >
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Name" hint="Exactly as it should appear on the verification result.">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Field label="Product line" hint="The heading these are grouped under.">
+              <input
+                value={collection}
+                onChange={(e) => setCollection(e.target.value)}
+                placeholder="9 M-KREA&trade; COMPLEX"
+                className={inputClass}
+              />
+            </Field>
+            <Field label="Name" hint="The flavour or variant.">
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Endless 2CT 80mg/Tab"
+                placeholder="Berry"
                 className={inputClass}
               />
             </Field>
@@ -62,7 +73,7 @@ export default function AdminProducts() {
               <input
                 value={subtitle}
                 onChange={(e) => setSubtitle(e.target.value)}
-                placeholder="Botanical Extract"
+                placeholder="4x TABS 100 MG/TAB - Botanical Extract"
                 className={inputClass}
               />
             </Field>
@@ -110,6 +121,7 @@ type ProductRowProps = {
     id: number;
     name: string;
     slug: string;
+    collection: string | null;
     subtitle: string | null;
     description: string | null;
     imageUrl: string | null;
@@ -122,6 +134,7 @@ type ProductRowProps = {
 
 function ProductRow({ product, onChanged }: ProductRowProps) {
   const [name, setName] = useState(product.name);
+  const [collection, setCollection] = useState(product.collection ?? "");
   const [subtitle, setSubtitle] = useState(product.subtitle ?? "");
   const [description, setDescription] = useState(product.description ?? "");
   const [sortOrder, setSortOrder] = useState(product.sortOrder);
@@ -173,7 +186,14 @@ function ProductRow({ product, onChanged }: ProductRowProps) {
         </div>
 
         <div className="grid flex-1 gap-4">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Field label="Product line">
+              <input
+                value={collection}
+                onChange={(e) => setCollection(e.target.value)}
+                className={inputClass}
+              />
+            </Field>
             <Field label="Name">
               <input value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
             </Field>
@@ -213,6 +233,7 @@ function ProductRow({ product, onChanged }: ProductRowProps) {
                 update.mutate({
                   id: product.id,
                   name: name.trim(),
+                  collection: collection.trim() || null,
                   subtitle: subtitle.trim() || null,
                   description: description.trim() || null,
                   sortOrder,

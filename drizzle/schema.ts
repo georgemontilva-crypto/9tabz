@@ -57,8 +57,16 @@ export const products = mysqlTable(
     id: int("id").autoincrement().primaryKey(),
     /** URL-safe identifier used in public links, e.g. "endless-2ct-80mg". */
     slug: varchar("slug", { length: 160 }).notNull().unique(),
-    /** Display name shown on the verification result, e.g. "Endless 2CT 80mg/Tab". */
+    /** Display name shown on the verification result, e.g. "Berry". */
     name: varchar("name", { length: 255 }).notNull(),
+    /**
+     * Product line this belongs to, e.g. "9 M-KREA(TM) COMPLEX".
+     *
+     * Free text rather than its own table: the grouping exists to put a heading
+     * above a row of cards on one page, and a lookup table would mean two admin
+     * screens and a foreign key to express a string that is typed once per line.
+     */
+    collection: varchar("collection", { length: 255 }),
     subtitle: varchar("subtitle", { length: 255 }),
     description: text("description"),
     /** Optional product shot, uploaded to R2. */
@@ -72,6 +80,7 @@ export const products = mysqlTable(
   },
   (t) => ({
     slugIdx: index("product_slug_idx").on(t.slug),
+    collectionIdx: index("product_collection_idx").on(t.collection),
     sortIdx: index("product_sort_idx").on(t.sortOrder),
   })
 );

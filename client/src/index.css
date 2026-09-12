@@ -41,7 +41,7 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
   --font-sans: "Inter", system-ui, sans-serif;
-  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --font-display: "Poppins", "Inter", system-ui, sans-serif;
   --ease-out-expo: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out-expo: cubic-bezier(0.77, 0, 0.175, 1);
 }

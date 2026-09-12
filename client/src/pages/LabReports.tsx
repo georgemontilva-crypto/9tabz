@@ -1,111 +1,130 @@
 import { PublicLayout } from "@/components/PublicLayout";
 import { trpc } from "@/lib/trpc";
-import { Download, FileText, Loader2 } from "lucide-react";
+import { FileText, Loader2 } from "lucide-react";
 
-function formatSize(bytes?: number | null): string | null {
-  if (!bytes || bytes <= 0) return null;
-  const mb = bytes / (1024 * 1024);
-  if (mb >= 1) return `${mb.toFixed(1)} MB`;
-  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-}
+type Report = {
+  id: number;
+  title: string;
+  batch: string | null;
+  lab: string | null;
+  testedOn: string | null;
+  fileUrl: string;
+  fileName: string | null;
+  sizeBytes: number | null;
+};
+
+type Product = {
+  id: number;
+  name: string;
+  collection: string | null;
+  subtitle: string | null;
+  imageUrl: string | null;
+  reports: Report[];
+};
 
 export default function LabReports() {
   const { data, isLoading } = trpc.catalog.publicReports.useQuery();
-  const products = data ?? [];
-  const withReports = products.filter((p) => p.reports.length > 0);
+  const products = (data ?? []).filter((p) => p.reports.length > 0) as Product[];
+
+  // Group into product lines, preserving the order the server sorted them in so
+  // sortOrder in the admin panel controls the page.
+  const groups: { name: string; items: Product[] }[] = [];
+  for (const product of products) {
+    const key = product.collection?.trim() || "Other products";
+    const existing = groups.find((g) => g.name === key);
+    if (existing) existing.items.push(product);
+    else groups.push({ name: key, items: [product] });
+  }
 
   return (
     <PublicLayout>
-      <div className="container max-w-3xl py-12">
-        <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
-          Lab Reports
-        </h1>
-        <p className="mt-3 max-w-lg text-sm leading-relaxed text-[#1c2340]/65">
-          Certificates of analysis for every batch, straight from the testing lab.
-          Match the batch number on your package to the report below.
-        </p>
-
+      <div className="container py-12">
         {isLoading ? (
-          <div className="flex justify-center py-20">
-            <Loader2 className="h-6 w-6 animate-spin text-[#1c2340]/40" />
+          <div className="flex justify-center py-24">
+            <Loader2 className="h-6 w-6 animate-spin text-black/30" />
           </div>
-        ) : withReports.length === 0 ? (
-          <div className="mt-10 rounded-3xl bg-white/70 p-10 text-center">
-            <FileText className="mx-auto h-8 w-8 text-[#1c2340]/30" />
-            <p className="mt-4 text-sm text-[#1c2340]/60">
+        ) : groups.length === 0 ? (
+          <div className="mx-auto max-w-md border border-black/10 p-12 text-center">
+            <FileText className="mx-auto h-8 w-8 text-black/20" />
+            <p className="mt-4 text-sm text-black/55">
               No lab reports have been published yet. Check back soon.
             </p>
           </div>
         ) : (
-          <div className="mt-10 space-y-8">
-            {withReports.map((product) => (
-              <section key={product.id}>
-                <div className="flex items-center gap-4">
-                  {product.imageUrl && (
-                    <img
-                      src={product.imageUrl}
-                      alt={product.name}
-                      className="h-14 w-14 shrink-0 rounded-xl bg-white object-contain p-1.5"
-                    />
-                  )}
-                  <div className="min-w-0">
-                    <h2 className="font-display text-xl font-bold tracking-tight">
-                      {product.name}
-                    </h2>
-                    {product.subtitle && (
-                      <p className="text-sm text-[#1c2340]/60">{product.subtitle}</p>
-                    )}
-                  </div>
+          <div className="space-y-14">
+            {groups.map((group) => (
+              <section key={group.name}>
+                <h2 className="font-display text-2xl font-extrabold uppercase tracking-tight sm:text-3xl">
+                  {group.name}
+                </h2>
+                <div className="mt-7 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  {group.items.map((product) => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
                 </div>
-
-                {product.description && (
-                  <p className="mt-3 text-sm leading-relaxed text-[#1c2340]/65">
-                    {product.description}
-                  </p>
-                )}
-
-                <ul className="mt-4 divide-y divide-[#1c2340]/10 overflow-hidden rounded-2xl bg-white/70">
-                  {product.reports.map((report) => {
-                    const size = formatSize(report.sizeBytes);
-                    const meta = [
-                      report.batch ? `Batch ${report.batch}` : null,
-                      report.lab,
-                      report.testedOn,
-                      size,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ");
-
-                    return (
-                      <li key={report.id}>
-                        <a
-                          href={report.fileUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-white"
-                        >
-                          <FileText className="h-5 w-5 shrink-0 text-[#1c2340]/40" />
-                          <div className="min-w-0 flex-1">
-                            <div className="truncate text-sm font-semibold">
-                              {report.title}
-                            </div>
-                            {meta && (
-                              <div className="mt-0.5 truncate text-xs text-[#1c2340]/55">
-                                {meta}
-                              </div>
-                            )}
-                          </div>
-                          <Download className="h-4 w-4 shrink-0 text-[#1c2340]/40" />
-                        </a>
-                      </li>
-                    );
-                  })}
-                </ul>
               </section>
             ))}
           </div>
         )}
       </div>
     </PublicLayout>
+  );
+}
+
+function ProductCard({ product }: { product: Product }) {
+  // One report is the common case and gets a single plain link, matching the
+  // rest of the card. Several need to be told apart, so they become a list
+  // labelled by batch.
+  const single = product.reports.length === 1 ? product.reports[0] : null;
+
+  return (
+    <article className="flex gap-5 border border-black/8 bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+      <div className="flex h-28 w-28 shrink-0 items-center justify-center bg-[#f4f4f4]">
+        {product.imageUrl ? (
+          <img
+            src={product.imageUrl}
+            alt={product.name}
+            className="h-full w-full object-contain p-2"
+          />
+        ) : (
+          <FileText className="h-7 w-7 text-black/15" />
+        )}
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <h3 className="font-display text-lg font-extrabold uppercase tracking-tight">
+          {product.name}
+        </h3>
+        {product.subtitle && (
+          <p className="mt-1.5 text-sm leading-snug text-black/45">{product.subtitle}</p>
+        )}
+
+        {single ? (
+          <a
+            href={single.fileUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 inline-block text-sm font-bold uppercase tracking-wide underline underline-offset-4 decoration-2 hover:text-[#a89800]"
+          >
+            See lab report
+          </a>
+        ) : (
+          <ul className="mt-4 space-y-2">
+            {product.reports.map((r) => (
+              <li key={r.id}>
+                <a
+                  href={r.fileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm font-bold uppercase tracking-wide underline underline-offset-4 decoration-2 hover:text-[#a89800]"
+                >
+                  {r.batch ? `Batch ${r.batch}` : r.title}
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </article>
   );
 }

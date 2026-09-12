@@ -1,71 +1,112 @@
 import { BRAND_NAME, SUPPORT_EMAIL } from "@shared/const";
-import { FlaskConical, ShieldCheck } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
-const NAV = [
-  { label: "Verify Your Code", href: "/", icon: ShieldCheck },
-  { label: "Lab Reports", href: "/lab-reports", icon: FlaskConical },
-];
-
 /**
- * The whole public site is these two pages, so the nav is the nav — no menu
- * button, no collapse. Two links fit on a phone at full size, and hiding them
- * behind a hamburger would add a tap to the only two things anyone came for.
+ * The brand is three flat colours — black, yellow, white — with no gradients and
+ * no soft shadows. Cards are separated by a hairline border and a small amount
+ * of elevation, nothing more, so the yellow stays the only thing on the page
+ * that draws the eye.
  */
 export function PublicLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const isActive = (href: string) =>
-    href === "/" ? location === "/" : location.startsWith(href);
+  const onLabReports = location.startsWith("/lab-reports");
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#e6eafc] text-[#1c2340]">
-      <header className="sticky top-0 z-30 border-b border-[#1c2340]/10 bg-[#e6eafc]/85 backdrop-blur-md">
-        <div className="container flex h-16 items-center gap-4">
+    <div className="flex min-h-screen flex-col bg-white text-black">
+      {/* Announcement bar. On the verification page it points at the reports;
+          on the reports page itself that link would go nowhere, so it carries
+          the support address instead of disappearing and shifting the layout. */}
+      <div className="bg-[#d2bd00] text-center">
+        {onLabReports ? (
+          <p className="px-4 py-2.5 text-sm font-bold text-black">
+            Questions about a batch?{" "}
+            <a href={`mailto:${SUPPORT_EMAIL}`} className="underline underline-offset-2">
+              {SUPPORT_EMAIL}
+            </a>
+          </p>
+        ) : (
           <Link
-            href="/"
-            className="text-base font-bold tracking-[0.22em] text-[#1c2340] uppercase"
+            href="/lab-reports"
+            className="block px-4 py-2.5 text-sm font-bold text-black transition-opacity hover:opacity-75"
           >
-            {BRAND_NAME}
+            See all lab reports here
           </Link>
-          <nav className="ml-auto flex items-center gap-1 sm:gap-2">
-            {NAV.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={[
-                  "inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-[13px] font-semibold transition-colors sm:px-4 sm:text-sm",
-                  isActive(item.href)
-                    ? "bg-[#1c2340] text-white"
-                    : "text-[#1c2340]/70 hover:bg-white/70 hover:text-[#1c2340]",
-                ].join(" ")}
-              >
-                <item.icon className="h-4 w-4 shrink-0" />
-                <span className="hidden xs:inline sm:inline">{item.label}</span>
-                <span className="xs:hidden sm:hidden">
-                  {item.href === "/" ? "Verify" : "Lab"}
-                </span>
-              </Link>
-            ))}
-          </nav>
+        )}
+      </div>
+
+      <header className="bg-black">
+        <div className="container flex h-24 items-center justify-center">
+          <Link href="/" aria-label={`${BRAND_NAME} home`}>
+            <Wordmark className="text-[2.25rem] sm:text-[2.5rem]" />
+          </Link>
         </div>
       </header>
 
+      <nav className="border-b border-black/10 bg-white">
+        <div className="container flex items-center justify-center gap-1 py-1">
+          <NavLink href="/" active={!onLabReports}>
+            Verify Your Code
+          </NavLink>
+          <NavLink href="/lab-reports" active={onLabReports}>
+            Lab Reports
+          </NavLink>
+        </div>
+      </nav>
+
       <main className="flex-1">{children}</main>
 
-      <footer className="border-t border-[#1c2340]/10 px-5 py-8 text-center text-xs text-[#1c2340]/55">
-        <p>
+      <footer className="mt-16 bg-black px-5 py-10 text-center">
+        <Wordmark className="justify-center text-[1.6rem]" />
+        <p className="mt-5 text-xs text-white/45">
           &copy; {new Date().getFullYear()} {BRAND_NAME}. All rights reserved.
         </p>
-        <p className="mt-1.5">
-          Questions about a code?{" "}
+        <p className="mt-1.5 text-xs text-white/45">
           <a
             href={`mailto:${SUPPORT_EMAIL}`}
-            className="font-medium text-[#1c2340] underline underline-offset-4"
+            className="font-medium text-[#ffe81f] underline underline-offset-4"
           >
             {SUPPORT_EMAIL}
           </a>
         </p>
       </footer>
     </div>
+  );
+}
+
+function NavLink({
+  href,
+  active,
+  children,
+}: {
+  href: string;
+  active: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className={[
+        "border-b-[3px] px-4 py-3 text-[13px] font-bold uppercase tracking-wide transition-colors sm:text-sm",
+        active
+          ? "border-[#d2bd00] text-black"
+          : "border-transparent text-black/45 hover:text-black",
+      ].join(" ")}
+    >
+      {children}
+    </Link>
+  );
+}
+
+/**
+ * Text wordmark standing in for the real logo file. Swapping it for the artwork
+ * is one replacement here rather than an edit in the header and the footer.
+ */
+function Wordmark({ className = "" }: { className?: string }) {
+  return (
+    <span
+      className={`flex items-center font-display font-extrabold italic leading-none tracking-tight text-[#ffe81f] ${className}`}
+    >
+      9Tabz
+    </span>
   );
 }
