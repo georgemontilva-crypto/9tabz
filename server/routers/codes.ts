@@ -188,6 +188,21 @@ export const codesRouter = appRouterFactory({
       return { success: true };
     }),
 
+  /** Points every code (or only the unassigned ones) at a single product. */
+  adminBulkAssignProduct: adminAuthedProcedure
+    .input(
+      z.object({
+        productId: z.number().int(),
+        onlyUnassigned: z.boolean().default(false),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const updated = await db.bulkAssignProduct(input.productId, {
+        onlyUnassigned: input.onlyUnassigned,
+      });
+      return { success: true, updated };
+    }),
+
   /** Restores a code's full allowance after a genuine customer mis-scan. */
   adminResetCount: adminAuthedProcedure
     .input(z.object({ id: z.number().int() }))

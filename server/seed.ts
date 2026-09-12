@@ -19,6 +19,19 @@ import * as db from "./db";
 
 const COLLECTION = "9 M-KREA™ COMPLEX";
 const SUBTITLE = "4x TABS 100 MG/TAB – Botanical Extract";
+
+/**
+ * The catalogue entry every authentication code points at.
+ *
+ * The code printed under the scratch label doesn't encode a flavour, so the
+ * verification result can only honestly name what all of them share. It carries
+ * no lab reports of its own and so never appears on the reports page, which
+ * lists per-flavour COAs.
+ */
+const VERIFICATION_PRODUCT = {
+  slug: "4x-tabs-100-mg-tab-botanical-extract",
+  name: "4x TABS 100 MG/TAB – Botanical Extract",
+};
 const DESCRIPTION =
   "9M-Krea Complex — Botanical Extract Tablets. 100mg per tablet, 4x chewable tablets, 15 minute rapid release formula. Max potency, advanced users only.";
 
@@ -71,6 +84,24 @@ const PRODUCTS: Seed[] = [
 export async function seedCatalog(): Promise<void> {
   let createdProducts = 0;
   let createdReports = 0;
+
+  if (!(await db.getProductBySlug(VERIFICATION_PRODUCT.slug))) {
+    await db.createProduct({
+      slug: VERIFICATION_PRODUCT.slug,
+      name: VERIFICATION_PRODUCT.name,
+      collection: null,
+      subtitle: null,
+      description: DESCRIPTION,
+      imageUrl: null,
+      imageKey: null,
+      sortOrder: 99,
+      published: true,
+    });
+    createdProducts++;
+    console.log(`+ product  ${VERIFICATION_PRODUCT.name} (for code verification)`);
+  } else {
+    console.log(`= product  ${VERIFICATION_PRODUCT.name} (already present)`);
+  }
 
   for (let index = 0; index < PRODUCTS.length; index++) {
     const seed = PRODUCTS[index];

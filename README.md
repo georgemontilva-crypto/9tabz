@@ -143,7 +143,15 @@ DATABASE_URL="..." pnpm seed
 ```
 
 Crea los cinco sabores de **9 M-KREA™ COMPLEX** (Berry, Blue Razz, Cherry,
-Unflavored, Watermelon) con su COA de California.
+Unflavored, Watermelon) con su COA de California, más el producto
+**4x TABS 100 MG/TAB – Botanical Extract**, que es al que apuntan los códigos de
+verificación.
+
+Ese último no tiene reportes propios y por eso nunca sale en la página de Lab
+Reports: el código impreso bajo la etiqueta no codifica el sabor, así que el
+resultado de la verificación solo puede nombrar honestamente lo que todos
+comparten. Para repartir los códigos existentes hay una acción en
+**Verification Codes → Point existing codes at a product**.
 
 Es idempotente y aditivo: un producto cuyo slug ya existe se deja intacto, y un
 reporte cuya URL ya está registrada no se vuelve a insertar. Correrlo de nuevo

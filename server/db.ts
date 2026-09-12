@@ -396,6 +396,28 @@ export async function updateAuthCode(
   await db.update(authCodes).set(data).where(eq(authCodes.id, id));
 }
 
+/**
+ * Points codes at a product in one statement.
+ *
+ * The codes printed on the packaging don't encode a flavour, so in practice
+ * every code belongs to the same catalogue entry and assigning them one at a
+ * time would be thousands of round trips.
+ *
+ * `onlyUnassigned` exists so a second import can be attached without disturbing
+ * codes an admin has already pointed somewhere deliberately.
+ */
+export async function bulkAssignProduct(
+  productId: number,
+  opts: { onlyUnassigned?: boolean } = {}
+): Promise<number> {
+  const db = await requireDb();
+  const result: any = await db
+    .update(authCodes)
+    .set({ productId })
+    .where(opts.onlyUnassigned ? sql`${authCodes.productId} IS NULL` : sql`1 = 1`);
+  return Number(result?.[0]?.affectedRows ?? result?.affectedRows ?? 0);
+}
+
 /** Gives a code its full allowance back. Used when a customer reports a genuine mis-scan. */
 export async function resetAuthCodeCount(id: number) {
   const db = await requireDb();

@@ -78,6 +78,16 @@ export default function AdminCodes() {
 
   const update = trpc.codes.adminUpdate.useMutation({ onSuccess: refresh });
 
+  const [assignTo, setAssignTo] = useState<number | "">("");
+  const [onlyUnassigned, setOnlyUnassigned] = useState(true);
+  const assign = trpc.codes.adminBulkAssignProduct.useMutation({
+    onSuccess: (r) => {
+      refresh();
+      toast.success(`${r.updated} code(s) reassigned`);
+    },
+    onError: (e) => toast.error(e.message || "Could not reassign"),
+  });
+
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -175,6 +185,63 @@ export default function AdminCodes() {
               Add
             </button>
           </form>
+        </Card>
+      </div>
+
+      <div className="mt-5">
+        <Card
+          title="Point existing codes at a product"
+          description="Applies to codes already in the list. The codes printed on the packaging don't encode a flavour, so in practice they all belong to the same catalogue entry."
+        >
+          <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
+            <Field label="Product">
+              <select
+                value={assignTo}
+                onChange={(e) => setAssignTo(e.target.value === "" ? "" : Number(e.target.value))}
+                className={inputClass}
+              >
+                <option value="">Select a product…</option>
+                {products.data?.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <button
+              onClick={() => {
+                if (assignTo === "") return;
+                const name = products.data?.find((p) => p.id === assignTo)?.name ?? "";
+                const scope = onlyUnassigned
+                  ? "every code that has no product yet"
+                  : "EVERY code, replacing any product already set";
+                if (confirm(`Point ${scope} at "${name}"?`)) {
+                  assign.mutate({ productId: Number(assignTo), onlyUnassigned });
+                }
+              }}
+              disabled={assign.isPending || assignTo === ""}
+              className={buttonClass}
+            >
+              {assign.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Apply
+            </button>
+          </div>
+
+          <label className="mt-4 flex items-center gap-2.5 text-sm text-neutral-600">
+            <input
+              type="checkbox"
+              checked={onlyUnassigned}
+              onChange={(e) => setOnlyUnassigned(e.target.checked)}
+              className="h-4 w-4 rounded border-neutral-300"
+            />
+            Only codes that don&apos;t have a product yet
+          </label>
+          {!onlyUnassigned && (
+            <p className="mt-2 text-sm text-amber-700">
+              Unchecked, this overwrites the product on every code in the database,
+              including ones you set deliberately.
+            </p>
+          )}
         </Card>
       </div>
 
