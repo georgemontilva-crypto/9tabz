@@ -63,6 +63,7 @@ como agotado.
 | `DATABASE_URL` | MySQL. En Railway va con la referencia `${{MySQL.MYSQL_URL}}` | Sí |
 | `JWT_SECRET` | Firma de la sesión del admin | Sí |
 | `ADMIN_SETUP_TOKEN` | Secreto para crear el **primer** admin. Ver abajo | Sí, al inicio |
+| `SEED_CATALOG` | `true` carga el catálogo inicial al arrancar. Borrar después | No |
 | `R2_ACCOUNT_ID` | Cloudflare R2 | Para subir PDF |
 | `R2_ACCESS_KEY_ID` | Cloudflare R2 | Para subir PDF |
 | `R2_SECRET_ACCESS_KEY` | Cloudflare R2 | Para subir PDF |
@@ -121,6 +122,15 @@ pnpm build                # cliente + bundle del servidor
 ```
 
 ### Cargar el catálogo inicial
+
+Dos formas, la misma lógica en las dos.
+
+**En el servidor** (no necesitas alcanzar la base desde tu máquina): pon
+`SEED_CATALOG=true` en Railway, espera el deploy, comprueba en los logs que
+dice `[Seed] Done.`, y **borra la variable**. Está detrás de una variable para
+que un reinicio del contenedor no lo vuelva a disparar cada vez.
+
+**Desde tu máquina**, si puedes conectarte a la base:
 
 ```bash
 DATABASE_URL="..." pnpm seed

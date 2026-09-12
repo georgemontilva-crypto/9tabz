@@ -9,6 +9,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { runMigrations } from "../migrate";
+import { seedCatalogIfRequested } from "../seed";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -33,6 +34,8 @@ async function startServer() {
   // Bring the schema up to date before serving traffic, so a fresh Railway
   // database provisions itself on first deploy with no manual step.
   await runMigrations();
+  // After the migrations, so the tables it writes into exist on a fresh database.
+  await seedCatalogIfRequested();
 
   const app = express();
   const server = createServer(app);

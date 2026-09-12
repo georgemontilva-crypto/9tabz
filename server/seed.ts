@@ -5,9 +5,10 @@
  * Idempotent and additive. A product whose slug already exists is left exactly
  * as it is, and a report whose URL is already on file is not inserted again, so
  * running this against a database the client has already edited cannot undo
- * their work. Run it as many times as you like:
+ * their work. Run it as many times as you like, either way:
  *
- *   DATABASE_URL="…" pnpm seed
+ *   DATABASE_URL="…" pnpm seed          (from a machine that can reach the DB)
+ *   SEED_CATALOG=true                    (set on the server; runs once at boot)
  *
  * The COA PDFs are linked where they already live rather than copied into R2:
  * the same file in two places is one more thing to keep in step when a batch is
@@ -67,12 +68,7 @@ const PRODUCTS: Seed[] = [
   },
 ];
 
-async function main() {
-  if (!process.env.DATABASE_URL) {
-    console.error("DATABASE_URL is not set.");
-    process.exit(1);
-  }
-
+export async function seedCatalog(): Promise<void> {
   let createdProducts = 0;
   let createdReports = 0;
 
@@ -128,12 +124,37 @@ async function main() {
   }
 
   console.log(
-    `\nDone. ${createdProducts} product(s) and ${createdReports} report(s) added.`
+    `[Seed] Done. ${createdProducts} product(s) and ${createdReports} report(s) added.`
   );
-  process.exit(0);
 }
 
-main().catch((err) => {
-  console.error("Seed failed:", err);
-  process.exit(1);
-});
+/**
+ * Boot hook. Gated on SEED_CATALOG so a redeploy doesn't silently re-run it
+ * every time the container restarts; set the variable, wait for the deploy,
+ * then remove it. A failure is logged and swallowed — the catalogue is content,
+ * and the site should still come up and verify codes without it.
+ */
+export async function seedCatalogIfRequested(): Promise<void> {
+  if (process.env.SEED_CATALOG !== "true") return;
+  try {
+    console.log("[Seed] SEED_CATALOG is set — loading the 9M-Krea catalogue…");
+    await seedCatalog();
+  } catch (err) {
+    console.error("[Seed] FAILED — the site will start without it:", err);
+  }
+}
+
+/** CLI entry point: `pnpm seed`. */
+const isCli = process.argv[1]?.endsWith("seed.ts") || process.argv[1]?.endsWith("seed.js");
+if (isCli) {
+  if (!process.env.DATABASE_URL) {
+    console.error("DATABASE_URL is not set.");
+    process.exit(1);
+  }
+  seedCatalog()
+    .then(() => process.exit(0))
+    .catch((err) => {
+      console.error("Seed failed:", err);
+      process.exit(1);
+    });
+}
