@@ -188,20 +188,46 @@ export const codesRouter = appRouterFactory({
       return { success: true };
     }),
 
-  /** Points every code (or only the unassigned ones) at a single product. */
-  adminBulkAssignProduct: adminAuthedProcedure
+  /**
+   * Reassigns product / batch / allowance on codes already loaded.
+   *
+   * The scope is explicit and `all` is not the default: an UPDATE with no
+   * filter over this table rewrites every code in circulation.
+   */
+  adminBulkAssign: adminAuthedProcedure
     .input(
       z.object({
-        productId: z.number().int(),
-        onlyUnassigned: z.boolean().default(false),
+        scope: z.discriminatedUnion("kind", [
+          z.object({ kind: z.literal("all") }),
+          z.object({ kind: z.literal("unassigned") }),
+          z.object({ kind: z.literal("batch"), batch: z.string().min(1).max(128) }),
+          z.object({ kind: z.literal("search"), search: z.string().min(1).max(128) }),
+        ]),
+        productId: z.number().int().nullable().optional(),
+        batch: z.string().max(128).nullable().optional(),
+        maxVerifications: z.number().int().min(1).max(100).optional(),
       })
     )
     .mutation(async ({ input }) => {
-      const updated = await db.bulkAssignProduct(input.productId, {
-        onlyUnassigned: input.onlyUnassigned,
+      const updated = await db.bulkAssignAuthCodes(input.scope, {
+        productId: input.productId,
+        batch: input.batch === undefined ? undefined : input.batch?.trim() || null,
+        maxVerifications: input.maxVerifications,
       });
       return { success: true, updated };
     }),
+
+  /** How many codes an adminBulkAssign with that scope would touch, to confirm first. */
+  adminCountScope: adminAuthedProcedure
+    .input(
+      z.discriminatedUnion("kind", [
+        z.object({ kind: z.literal("all") }),
+        z.object({ kind: z.literal("unassigned") }),
+        z.object({ kind: z.literal("batch"), batch: z.string().min(1).max(128) }),
+        z.object({ kind: z.literal("search"), search: z.string().min(1).max(128) }),
+      ])
+    )
+    .query(async ({ input }) => ({ count: await db.countAuthCodes(input) })),
 
   /** Restores a code's full allowance after a genuine customer mis-scan. */
   adminResetCount: adminAuthedProcedure

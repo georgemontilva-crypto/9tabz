@@ -151,7 +151,14 @@ Ese último no tiene reportes propios y por eso nunca sale en la página de Lab
 Reports: el código impreso bajo la etiqueta no codifica el sabor, así que el
 resultado de la verificación solo puede nombrar honestamente lo que todos
 comparten. Para repartir los códigos existentes hay una acción en
-**Verification Codes → Point existing codes at a product**.
+**Verification Codes → Reassign codes already loaded**: se elige el alcance
+(sin producto / un lote / una búsqueda / todos), qué campos escribir, y antes de
+escribir nada muestra cuántos códigos coinciden y pide confirmación.
+
+El alcance se pide por su nombre y `todos` no es el valor por defecto: un UPDATE
+sin filtro sobre esa tabla reescribe todos los códigos en circulación. Solo se
+escriben los campos que se rellenan, así que cambiar el producto de un lote no
+resetea de paso el cupo de códigos ya usados a medias.
 
 Es idempotente y aditivo: un producto cuyo slug ya existe se deja intacto, y un
 reporte cuya URL ya está registrada no se vuelve a insertar. Correrlo de nuevo

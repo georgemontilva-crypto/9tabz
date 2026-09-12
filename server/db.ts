@@ -396,26 +396,57 @@ export async function updateAuthCode(
   await db.update(authCodes).set(data).where(eq(authCodes.id, id));
 }
 
+export type CodeScope =
+  | { kind: "all" }
+  | { kind: "unassigned" }
+  | { kind: "batch"; batch: string }
+  | { kind: "search"; search: string };
+
+function scopeWhere(scope: CodeScope) {
+  if (scope.kind === "unassigned") return sql`${authCodes.productId} is null`;
+  if (scope.kind === "batch") return eq(authCodes.batch, scope.batch);
+  if (scope.kind === "search")
+    return or(
+      like(authCodes.code, `%${scope.search}%`),
+      like(authCodes.batch, `%${scope.search}%`)
+    );
+  return undefined; // "all" — no filter
+}
+
 /**
- * Points codes at a product in one statement.
+ * Reassigns product / batch / allowance on codes already loaded.
  *
- * The codes printed on the packaging don't encode a flavour, so in practice
- * every code belongs to the same catalogue entry and assigning them one at a
- * time would be thousands of round trips.
+ * `scope` is asked for by name and there is no implicit "all": an UPDATE with
+ * no WHERE over this table rewrites every code in circulation, so anyone who
+ * wants that has to say so.
  *
- * `onlyUnassigned` exists so a second import can be attached without disturbing
- * codes an admin has already pointed somewhere deliberately.
+ * Only the fields actually passed are written, so changing the product on a
+ * batch doesn't quietly reset the allowance of codes already half-used.
  */
-export async function bulkAssignProduct(
-  productId: number,
-  opts: { onlyUnassigned?: boolean } = {}
+export async function bulkAssignAuthCodes(
+  scope: CodeScope,
+  data: { productId?: number | null; batch?: string | null; maxVerifications?: number }
 ): Promise<number> {
   const db = await requireDb();
-  const result: any = await db
-    .update(authCodes)
-    .set({ productId })
-    .where(opts.onlyUnassigned ? sql`${authCodes.productId} IS NULL` : sql`1 = 1`);
+
+  const set: Record<string, unknown> = {};
+  if (data.productId !== undefined) set.productId = data.productId;
+  if (data.batch !== undefined) set.batch = data.batch;
+  if (data.maxVerifications !== undefined) set.maxVerifications = data.maxVerifications;
+  if (Object.keys(set).length === 0) return 0;
+
+  const result: any = await db.update(authCodes).set(set).where(scopeWhere(scope));
   return Number(result?.[0]?.affectedRows ?? result?.affectedRows ?? 0);
+}
+
+/** How many codes a bulkAssignAuthCodes with that same scope would touch. */
+export async function countAuthCodes(scope: CodeScope): Promise<number> {
+  const db = await requireDb();
+  const rows = await db
+    .select({ c: sql<number>`count(*)` })
+    .from(authCodes)
+    .where(scopeWhere(scope));
+  return Number(rows[0]?.c ?? 0);
 }
 
 /** Gives a code its full allowance back. Used when a customer reports a genuine mis-scan. */

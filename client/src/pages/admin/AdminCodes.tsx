@@ -2,7 +2,7 @@ import { AdminLayout, Card, Field, buttonClass, inputClass } from "@/components/
 import { Pagination, TableCard } from "@/components/admin/AdminTable";
 import { trpc } from "@/lib/trpc";
 import { DEFAULT_MAX_VERIFICATIONS } from "@shared/const";
-import { Ban, Check, Loader2, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
+import { Ban, Check, Loader2, Plus, RotateCcw, Search, Tag, Trash2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -78,15 +78,63 @@ export default function AdminCodes() {
 
   const update = trpc.codes.adminUpdate.useMutation({ onSuccess: refresh });
 
-  const [assignTo, setAssignTo] = useState<number | "">("");
-  const [onlyUnassigned, setOnlyUnassigned] = useState(true);
-  const assign = trpc.codes.adminBulkAssignProduct.useMutation({
+  // Reassigning codes already loaded
+  type ScopeKind = "unassigned" | "batch" | "search" | "all";
+  const [scopeKind, setScopeKind] = useState<ScopeKind>("unassigned");
+  const [scopeValue, setScopeValue] = useState("");
+  const [assignProductId, setAssignProductId] = useState<number | "">("");
+  const [assignBatch, setAssignBatch] = useState("");
+
+  const scope =
+    scopeKind === "batch"
+      ? { kind: "batch" as const, batch: scopeValue.trim() }
+      : scopeKind === "search"
+        ? { kind: "search" as const, search: scopeValue.trim() }
+        : { kind: scopeKind as "all" | "unassigned" };
+
+  const scopeReady = scopeKind === "all" || scopeKind === "unassigned" || !!scopeValue.trim();
+
+  const utilsCount = trpc.useUtils();
+  const assign = trpc.codes.adminBulkAssign.useMutation({
     onSuccess: (r) => {
       refresh();
-      toast.success(`${r.updated} code(s) reassigned`);
+      toast.success(`${r.updated} code(s) updated`);
     },
     onError: (e) => toast.error(e.message || "Could not reassign"),
   });
+
+  /**
+   * The count is fetched before anything is written. "Assign to all" over this
+   * table is one click away from rewriting every code in circulation, and a
+   * number in the confirmation is the difference between noticing that and not.
+   */
+  const runAssign = async () => {
+    if (!scopeReady) return;
+    if (assignProductId === "" && !assignBatch.trim()) {
+      toast.error("Pick a product or a batch to set.");
+      return;
+    }
+    const { count } = await utilsCount.codes.adminCountScope.fetch(scope);
+    if (count === 0) {
+      toast.error("No codes match that scope.");
+      return;
+    }
+    const target = products.data?.find((p) => p.id === assignProductId)?.name;
+    const changes = [
+      target ? `product to "${target}"` : null,
+      assignBatch.trim() ? `batch to ${assignBatch.trim()}` : null,
+    ]
+      .filter(Boolean)
+      .join(" and ");
+
+    if (confirm(`Set ${changes} on ${count} code(s)? This cannot be undone.`)) {
+      assign.mutate({
+        scope,
+        ...(assignProductId === "" ? {} : { productId: Number(assignProductId) }),
+        ...(assignBatch.trim() ? { batch: assignBatch.trim() } : {}),
+      });
+    }
+  };
 
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -190,17 +238,48 @@ export default function AdminCodes() {
 
       <div className="mt-5">
         <Card
-          title="Point existing codes at a product"
-          description="Applies to codes already in the list. The codes printed on the packaging don't encode a flavour, so in practice they all belong to the same catalogue entry."
+          title="Reassign codes already loaded"
+          description="The codes printed on the packaging don't encode a flavour, so in practice they all belong to the same catalogue entry. Use this to point a batch — or everything — at one product."
         >
-          <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
-            <Field label="Product">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Which codes">
               <select
-                value={assignTo}
-                onChange={(e) => setAssignTo(e.target.value === "" ? "" : Number(e.target.value))}
+                value={scopeKind}
+                onChange={(e) => {
+                  setScopeKind(e.target.value as ScopeKind);
+                  setScopeValue("");
+                }}
                 className={inputClass}
               >
-                <option value="">Select a product…</option>
+                <option value="unassigned">Only codes with no product yet</option>
+                <option value="batch">Codes in a specific batch</option>
+                <option value="search">Codes matching a search</option>
+                <option value="all">Every code in the database</option>
+              </select>
+            </Field>
+
+            {(scopeKind === "batch" || scopeKind === "search") && (
+              <Field label={scopeKind === "batch" ? "Batch" : "Search text"}>
+                <input
+                  value={scopeValue}
+                  onChange={(e) => setScopeValue(e.target.value)}
+                  placeholder={scopeKind === "batch" ? "A1042" : "Part of a code or batch"}
+                  className={inputClass}
+                />
+              </Field>
+            )}
+          </div>
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <Field label="Set product to" hint="Leave empty to leave the product untouched.">
+              <select
+                value={assignProductId}
+                onChange={(e) =>
+                  setAssignProductId(e.target.value === "" ? "" : Number(e.target.value))
+                }
+                className={inputClass}
+              >
+                <option value="">Don&apos;t change</option>
                 {products.data?.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
@@ -208,40 +287,39 @@ export default function AdminCodes() {
                 ))}
               </select>
             </Field>
-            <button
-              onClick={() => {
-                if (assignTo === "") return;
-                const name = products.data?.find((p) => p.id === assignTo)?.name ?? "";
-                const scope = onlyUnassigned
-                  ? "every code that has no product yet"
-                  : "EVERY code, replacing any product already set";
-                if (confirm(`Point ${scope} at "${name}"?`)) {
-                  assign.mutate({ productId: Number(assignTo), onlyUnassigned });
-                }
-              }}
-              disabled={assign.isPending || assignTo === ""}
-              className={buttonClass}
-            >
-              {assign.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Apply
-            </button>
+            <Field label="Set batch to" hint="Leave empty to leave the batch untouched.">
+              <input
+                value={assignBatch}
+                onChange={(e) => setAssignBatch(e.target.value)}
+                placeholder="A1042"
+                className={inputClass}
+              />
+            </Field>
           </div>
 
-          <label className="mt-4 flex items-center gap-2.5 text-sm text-neutral-600">
-            <input
-              type="checkbox"
-              checked={onlyUnassigned}
-              onChange={(e) => setOnlyUnassigned(e.target.checked)}
-              className="h-4 w-4 rounded border-neutral-300"
-            />
-            Only codes that don&apos;t have a product yet
-          </label>
-          {!onlyUnassigned && (
-            <p className="mt-2 text-sm text-amber-700">
-              Unchecked, this overwrites the product on every code in the database,
-              including ones you set deliberately.
+          {scopeKind === "all" && (
+            <p className="mt-4 text-sm text-amber-700">
+              This touches every code in the database, including ones you assigned
+              deliberately.
             </p>
           )}
+
+          <button
+            onClick={runAssign}
+            disabled={assign.isPending || !scopeReady}
+            className={`${buttonClass} mt-4`}
+          >
+            {assign.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Tag className="h-4 w-4" />
+            )}
+            Assign
+          </button>
+          <p className="mt-2 text-xs text-neutral-400">
+            You&apos;ll see how many codes match and have to confirm before anything is
+            written.
+          </p>
         </Card>
       </div>
 
