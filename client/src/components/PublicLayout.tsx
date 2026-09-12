@@ -43,11 +43,11 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
 
       <nav className="border-b border-black/10 bg-white">
         <div className="container flex items-center justify-center gap-1 py-1">
-          <NavLink href="/" active={!onLabReports}>
-            Verify Your Code
-          </NavLink>
           <NavLink href="/lab-reports" active={onLabReports}>
             Lab Reports
+          </NavLink>
+          <NavLink href="/" active={!onLabReports}>
+            Verify Your Code
           </NavLink>
         </div>
       </nav>
