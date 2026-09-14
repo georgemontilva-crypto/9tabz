@@ -3,6 +3,7 @@ import express from "express";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
+import { registerCanonicalHostRedirect } from "./canonicalHost";
 import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
@@ -42,6 +43,15 @@ async function startServer() {
 
   const app = express();
   const server = createServer(app);
+
+  // Railway terminates TLS at its proxy, so without this req.protocol is always
+  // "http" and req.ip is the proxy's address. The admin session cookie decides
+  // `secure` from the protocol, and the query log records the client IP.
+  app.set("trust proxy", true);
+
+  // Ahead of every route: an alias host must never be served real content, or
+  // it would be indexed and linked as a second copy of the site.
+  registerCanonicalHostRedirect(app);
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));

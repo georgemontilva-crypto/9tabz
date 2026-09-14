@@ -75,6 +75,8 @@ como agotado.
 | `R2_SECRET_ACCESS_KEY` | Cloudflare R2 | Para subir PDF |
 | `R2_BUCKET` | Nombre del bucket | Para subir PDF |
 | `R2_PUBLIC_URL` | URL pública del bucket, sin barra final | Para subir PDF |
+| `CANONICAL_HOST` | Dominio real del sitio, p. ej. `www.get9tabz.com` | No |
+| `ALIAS_HOSTS` | Dominios que redirigen al canónico, separados por coma | No |
 | `PORT` | Lo inyecta Railway | No |
 
 ### Sobre `ADMIN_SETUP_TOKEN`
@@ -93,6 +95,30 @@ se rompen: las URLs se guardan completas en la base de datos. Conecta el dominio
 propio del bucket **antes** de subir los reportes de producción.
 
 ---
+
+### Dominios alias
+
+Con `CANONICAL_HOST` y `ALIAS_HOSTS` puestas, cualquier petición que llegue con
+un host de la lista se redirige con 301 al canónico **conservando ruta y query**:
+
+```
+CANONICAL_HOST=www.get9tabz.com
+ALIAS_HOSTS=pop9tabz.com,www.pop9tabz.com
+```
+
+`pop9tabz.com/verify?code=ABC` → `https://www.get9tabz.com/verify?code=ABC`.
+
+Se hace en la app y no en el DNS para que toda ruta futura funcione sola, sin
+volver a tocar registros. Un CNAME pelado serviría el sitio entero en los dos
+dominios, y ahí un QR impreso puede resolver a cualquiera de los dos hostnames.
+
+Si `CANONICAL_HOST` está vacía el middleware no hace nada, así que el desarrollo
+local y la URL de Railway no se ven afectados. El canónico se excluye de la lista
+de alias aunque se liste por error, para no crear un bucle de redirección.
+
+> El 301 se cachea fuerte en el navegador. Si `pop9tabz.com` sirve algo hoy, ese
+> contenido deja de ser alcanzable para quien ya visitó el alias, aunque después
+> se revierta el DNS.
 
 ## Base de datos
 
