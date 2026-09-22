@@ -236,6 +236,21 @@ Cada código admite además, desde la tabla:
 
 ---
 
+## Subida de archivos
+
+Los PDF y las imágenes suben **a través del servidor** (`POST /api/upload`), que
+los guarda en R2. No van del navegador directo al bucket.
+
+La versión anterior usaba URLs prefirmadas y el navegador hablaba directo con
+R2. Ahorra un salto, pero solo funciona si el bucket tiene una regla CORS que
+permita `PUT` desde este origen — y cuando no la tiene, el navegador bloquea la
+petición antes de enviarla: sin código de estado, sin nada en los logs del
+servidor, y con la subida fallando en silencio.
+
+Por el servidor es una petición del mismo origen: no hay preflight ni ajuste de
+bucket que pueda estar mal. Límite de 25 MB por archivo. La ruta valida la
+sesión de admin, el tipo, y que un PDF empiece de verdad por `%PDF`.
+
 ## Pasar los enlazados a R2
 
 Un reporte añadido por URL no guarda `fileKey`: el archivo vive en el servidor de
