@@ -212,6 +212,14 @@ El orden importa: los reportes y los códigos cuelgan de un producto.
 2. **Lab Reports** — subir el PDF, asociarlo al producto y anotar el lote.
    En el panel, cada reporte se puede **subir** (va a R2) o **enlazar** por URL
    si ya está alojado en otro lado. Ver "Pasar los enlazados a R2" abajo.
+
+   Un reporte ya publicado se edita desplegándolo con la flecha de su fila:
+   título, lote, laboratorio, fecha y orden, y **reemplazar el PDF** por uno
+   nuevo (subido o enlazado). El enlace público cambia al guardar, y el PDF
+   anterior se borra del bucket si era nuestro — las claves llevan sufijo de
+   hash, así que el archivo nuevo nunca pisa al viejo y sin ese borrado quedaría
+   huérfano. La etiqueta **Linked** en una fila indica que ese PDF está alojado
+   fuera de R2.
 3. **Verification Codes** — elegir producto, lote y número de consultas; después
    importar el archivo del cliente (CSV o TXT, uno por línea o separados por comas)
    o pegar la lista.

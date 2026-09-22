@@ -239,11 +239,45 @@ export const catalogRouter = appRouterFactory({
         testedOn: z.string().max(32).nullable().optional(),
         sortOrder: z.number().int().optional(),
         published: z.boolean().optional(),
+        /**
+         * Replacing the PDF. All four move together or none do: a row carrying
+         * the new URL with the old size, or the old key, describes a file that
+         * doesn't exist.
+         */
+        fileUrl: z.string().min(1).max(1024).optional(),
+        fileKey: z.string().max(512).optional(),
+        fileName: z.string().max(255).nullable().optional(),
+        sizeBytes: z.number().int().nonnegative().nullable().optional(),
       })
     )
     .mutation(async ({ input }) => {
       const { id, ...rest } = input;
+
+      if (rest.fileUrl !== undefined && rest.fileKey === undefined) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "A replacement file needs its storage key too (empty for a linked PDF).",
+        });
+      }
+
+      const before = await db.getLabReportById(id);
+      if (!before) throw new TRPCError({ code: "NOT_FOUND", message: "Report not found" });
+
       await db.updateLabReport(id, rest);
+
+      // Only once the row points at the replacement. Uploads get a hash suffix,
+      // so the new object never overwrites the old one and the old would sit in
+      // the bucket forever; deleting it first would instead leave the report
+      // broken if the update failed.
+      const replaced = rest.fileKey !== undefined && rest.fileKey !== before.fileKey;
+      if (replaced && before.fileKey && isStorageConfigured()) {
+        try {
+          await storageDelete(before.fileKey);
+        } catch (err) {
+          console.warn(`[catalog] failed to delete replaced ${before.fileKey}:`, err);
+        }
+      }
+
       return { success: true };
     }),
 
