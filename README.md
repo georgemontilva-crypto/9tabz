@@ -169,7 +169,8 @@ DATABASE_URL="..." pnpm seed
 ```
 
 Crea los cinco sabores de **9 M-KREA™ COMPLEX** (Berry, Blue Razz, Cherry,
-Unflavored, Watermelon) con su COA de California, más el producto
+Unflavored, Watermelon), cada uno con **dos** COA — SD Pharmlab y NN Analytics
+— más el producto
 **4x TABS 100 MG/TAB – Botanical Extract**, que es al que apuntan los códigos de
 verificación.
 
@@ -190,10 +191,15 @@ Es idempotente y aditivo: un producto cuyo slug ya existe se deja intacto, y un
 reporte cuya URL ya está registrada no se vuelve a insertar. Correrlo de nuevo
 sobre una base que el cliente ya editó no deshace su trabajo.
 
-Los PDF se **enlazan** donde ya viven (`get9tabz.com/wp-content/uploads/...`) en
-vez de copiarse a R2: el mismo archivo en dos sitios es una cosa más que
-mantener sincronizada cuando se retestea un lote. Las imágenes de producto son
-estáticas, en `client/public/products/`.
+Un COA nuevo **no retira** al anterior: una unidad comprada el mes pasado se
+analizó bajo el lote viejo, y quitar ese reporte dejaría a quien la tenga sin
+poder comprobar lo que realmente compró. Por eso los reportes se acumulan y la
+tarjeta los lista uno al lado del otro, etiquetados por laboratorio.
+
+Los de **SD Pharmlab** se enlazan donde ya viven
+(`get9tabz.com/wp-content/uploads/...`). Los de **NN Analytics** viajan en el
+repo, en `client/public/lab-reports/`, igual que las imágenes de producto en
+`client/public/products/`.
 
 ---
 

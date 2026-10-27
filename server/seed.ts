@@ -35,52 +35,131 @@ const VERIFICATION_PRODUCT = {
 const DESCRIPTION =
   "9M-Krea Complex — Botanical Extract Tablets. 100mg per tablet, 4x chewable tablets, 15 minute rapid release formula. Max potency, advanced users only.";
 
+type Report = {
+  /** Who ran it. This is what the public card labels the link with. */
+  lab: string;
+  batch: string;
+  /** YYYY-MM-DD, or null when the COA doesn't state it. */
+  testedOn: string | null;
+  url: string;
+};
+
 type Seed = {
   slug: string;
   name: string;
   image: string;
-  batch: string;
-  coa: string;
+  reports: Report[];
 };
 
+/**
+ * Both rounds of testing, per flavour.
+ *
+ * A newer COA does not retire the one before it: a unit bought last month was
+ * tested under the older batch, and pulling that report would leave whoever is
+ * holding it unable to check what they actually have. So reports accumulate and
+ * the card lists them side by side, labelled by lab.
+ *
+ * The SD Pharmlab round is hosted on the WordPress site and linked; the NN
+ * Analytics round ships with the repo under client/public/lab-reports, which is
+ * why those URLs are site-relative.
+ */
 const PRODUCTS: Seed[] = [
   {
     slug: "9-m-krea-complex-berry",
     name: "Berry",
     image: "/products/berry.webp",
-    batch: "SD260813-067",
-    coa: "https://get9tabz.com/wp-content/uploads/2026/08/SD260813-067_9Tabz-9m-KREA-BERRY_California_COA_V1.pdf",
+    reports: [
+      {
+        lab: "SD Pharmlab",
+        batch: "SD260813-067",
+        testedOn: null,
+        url: "https://get9tabz.com/wp-content/uploads/2026/08/SD260813-067_9Tabz-9m-KREA-BERRY_California_COA_V1.pdf",
+      },
+      {
+        lab: "NN Analytics",
+        batch: "B260930-1",
+        testedOn: "2026-09-30",
+        url: "/lab-reports/nn-analytics-9t-berry-B260930-1.pdf",
+      },
+    ],
   },
   {
     slug: "9-m-krea-complex-blue-razz",
     name: "Blue Razz",
     image: "/products/blue-razz.webp",
-    batch: "SD260813-068",
-    coa: "https://get9tabz.com/wp-content/uploads/2026/08/SD260813-068_9Tabz-9m-KREA-BLUERAZZ_California_COA_V1.pdf",
+    reports: [
+      {
+        lab: "SD Pharmlab",
+        batch: "SD260813-068",
+        testedOn: null,
+        url: "https://get9tabz.com/wp-content/uploads/2026/08/SD260813-068_9Tabz-9m-KREA-BLUERAZZ_California_COA_V1.pdf",
+      },
+      {
+        lab: "NN Analytics",
+        batch: "B260930-1",
+        testedOn: "2026-09-30",
+        url: "/lab-reports/nn-analytics-9t-blue-razz-B260930-1.pdf",
+      },
+    ],
   },
   {
     slug: "9-m-krea-complex-cherry",
     name: "Cherry",
     image: "/products/cherry.webp",
-    batch: "SD260813-069",
-    coa: "https://get9tabz.com/wp-content/uploads/2026/08/SD260813-069_9Tabz-9m-KREA-CHERRY_California_COA_V1.pdf",
+    reports: [
+      {
+        lab: "SD Pharmlab",
+        batch: "SD260813-069",
+        testedOn: null,
+        url: "https://get9tabz.com/wp-content/uploads/2026/08/SD260813-069_9Tabz-9m-KREA-CHERRY_California_COA_V1.pdf",
+      },
+      {
+        lab: "NN Analytics",
+        batch: "B260930-1",
+        testedOn: "2026-09-30",
+        url: "/lab-reports/nn-analytics-9t-cherry-B260930-1.pdf",
+      },
+    ],
   },
   {
     slug: "9-m-krea-complex-unflavored",
     name: "Unflavored",
     image: "/products/unflavored.webp",
-    batch: "SD260813-070",
-    coa: "https://get9tabz.com/wp-content/uploads/2026/08/SD260813-070_9Tabz-9m-KREA-UNFLAVORED_California_COA_V1-1.pdf",
+    reports: [
+      {
+        lab: "SD Pharmlab",
+        batch: "SD260813-070",
+        testedOn: null,
+        url: "https://get9tabz.com/wp-content/uploads/2026/08/SD260813-070_9Tabz-9m-KREA-UNFLAVORED_California_COA_V1-1.pdf",
+      },
+      {
+        lab: "NN Analytics",
+        batch: "B260930-1",
+        testedOn: "2026-09-30",
+        url: "/lab-reports/nn-analytics-9t-unflavored-B260930-1.pdf",
+      },
+    ],
   },
   {
     slug: "9-m-krea-complex-watermelon",
     name: "Watermelon",
     image: "/products/watermelon.webp",
-    batch: "SD260813-071",
-    coa: "https://get9tabz.com/wp-content/uploads/2026/08/SD260813-071_9Tabz-9m-KREA-WATERMELON_California_COA_V1.pdf",
+    reports: [
+      {
+        lab: "SD Pharmlab",
+        batch: "SD260813-071",
+        testedOn: null,
+        url: "https://get9tabz.com/wp-content/uploads/2026/08/SD260813-071_9Tabz-9m-KREA-WATERMELON_California_COA_V1.pdf",
+      },
+      {
+        lab: "NN Analytics",
+        batch: "B260930-1",
+        testedOn: "2026-09-30",
+        url: "/lab-reports/nn-analytics-9t-watermelon-B260930-1.pdf",
+      },
+    ],
   },
 ];
-
 export async function seedCatalog(): Promise<void> {
   let createdProducts = 0;
   let createdReports = 0;
@@ -132,26 +211,42 @@ export async function seedCatalog(): Promise<void> {
     }
 
     const existing = await db.listLabReports(product.id);
-    if (existing.some((r) => r.fileUrl === seed.coa)) {
-      console.log(`= report   ${seed.batch} (already present)`);
-      continue;
-    }
 
-    await db.createLabReport({
-      productId: product.id,
-      title: `California COA — Batch ${seed.batch}`,
-      batch: seed.batch,
-      lab: null,
-      testedOn: null,
-      fileUrl: seed.coa,
-      fileKey: "",
-      fileName: seed.coa.split("/").pop() ?? null,
-      sizeBytes: null,
-      sortOrder: 0,
-      published: true,
-    });
-    createdReports++;
-    console.log(`+ report   ${seed.batch}`);
+    for (let order = 0; order < seed.reports.length; order++) {
+      const report = seed.reports[order];
+      const already = existing.find((r) => r.fileUrl === report.url);
+
+      if (already) {
+        // Earlier runs filed the SD round with no lab name, back when it was
+        // the only one. Now that the card labels each link by lab, a blank one
+        // would render as an unidentified second link.
+        if (!already.lab) {
+          await db.updateLabReport(already.id, { lab: report.lab, sortOrder: order });
+          console.log(`~ report   ${report.lab} / ${report.batch} (labelled)`);
+        } else {
+          console.log(`= report   ${report.lab} / ${report.batch} (already present)`);
+        }
+        continue;
+      }
+
+      await db.createLabReport({
+        productId: product.id,
+        title: `${report.lab} COA — Batch ${report.batch}`,
+        batch: report.batch,
+        lab: report.lab,
+        testedOn: report.testedOn,
+        fileUrl: report.url,
+        // No fileKey: these are either linked from the WordPress site or served
+        // straight out of the repo, so there is no object of ours in the bucket.
+        fileKey: "",
+        fileName: report.url.split("/").pop() ?? null,
+        sizeBytes: null,
+        sortOrder: order,
+        published: true,
+      });
+      createdReports++;
+      console.log(`+ report   ${report.lab} / ${report.batch}`);
+    }
   }
 
   console.log(

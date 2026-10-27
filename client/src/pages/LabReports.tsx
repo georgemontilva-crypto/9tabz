@@ -72,11 +72,6 @@ export default function LabReports() {
 }
 
 function ProductCard({ product }: { product: Product }) {
-  // One report is the common case and gets a single plain link, matching the
-  // rest of the card. Several need to be told apart, so they become a list
-  // labelled by batch.
-  const single = product.reports.length === 1 ? product.reports[0] : null;
-
   return (
     <article className="flex gap-5 border border-black/8 bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
       <div className="flex h-28 w-28 shrink-0 items-center justify-center bg-[#f4f4f4]">
@@ -99,31 +94,29 @@ function ProductCard({ product }: { product: Product }) {
           <p className="mt-1.5 text-sm leading-snug text-black/45">{product.subtitle}</p>
         )}
 
-        {single ? (
-          <a
-            href={single.fileUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-4 inline-block text-sm font-bold uppercase tracking-wide underline underline-offset-4 decoration-2 hover:text-[#a89800]"
-          >
-            See lab report
-          </a>
-        ) : (
-          <ul className="mt-4 space-y-2">
-            {product.reports.map((r) => (
-              <li key={r.id}>
-                <a
-                  href={r.fileUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm font-bold uppercase tracking-wide underline underline-offset-4 decoration-2 hover:text-[#a89800]"
-                >
-                  {r.batch ? `Batch ${r.batch}` : r.title}
-                </a>
-              </li>
-            ))}
-          </ul>
-        )}
+        {/*
+          Reports sit side by side and wrap, rather than stacking one per row.
+          Each round of testing is equally current for whoever is holding that
+          batch, so a vertical list would read as a history with the newest on
+          top — and send someone with an older unit to the wrong report.
+        */}
+        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
+          {product.reports.map((report) => (
+            <a
+              key={report.id}
+              href={report.fileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              // Labelled by lab, since that is what distinguishes them on the
+              // package. Falls back to the batch, then to a generic label, so a
+              // report added from the admin panel without a lab name is still a
+              // working link rather than an empty one.
+              className="text-sm font-bold uppercase tracking-wide underline underline-offset-4 decoration-2 hover:text-[#a89800]"
+            >
+              {report.lab ?? (report.batch ? `Batch ${report.batch}` : "See lab report")}
+            </a>
+          ))}
+        </div>
       </div>
     </article>
   );
