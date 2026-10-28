@@ -95,29 +95,42 @@ function ProductCard({ product }: { product: Product }) {
         )}
 
         {/*
-          One report per line. Side by side, the lab names sat on the same row
-          as the wrapped tail of the subtitle, so a card with two reports read
-          as three stacked items and it was not clear which were links.
+          One report per line, with the batch beside the lab name. Side by side,
+          the lab names sat on the same row as the wrapped tail of the subtitle,
+          so a card with two reports read as three stacked items.
 
-          `items-start` keeps each link's underline the width of its own text
-          rather than the column.
+          The whole row is the link, so the batch is part of the target rather
+          than dead text next to it — on a phone the lab name alone is a small
+          tap target, and the batch is what someone is actually matching against
+          the package.
         */}
-        <div className="mt-4 flex flex-col items-start gap-1.5">
-          {product.reports.map((report) => (
-            <a
-              key={report.id}
-              href={report.fileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              // Labelled by lab, since that is what distinguishes them on the
-              // package. Falls back to the batch, then to a generic label, so a
-              // report added from the admin panel without a lab name is still a
-              // working link rather than an empty one.
-              className="text-sm font-bold uppercase tracking-wide underline underline-offset-4 decoration-2 hover:text-[#a89800]"
-            >
-              {report.lab ?? (report.batch ? `Batch ${report.batch}` : "See lab report")}
-            </a>
-          ))}
+        <div className="mt-4 flex flex-col items-start gap-2">
+          {product.reports.map((report) => {
+            // Falls back to the batch, then to a generic label, so a report
+            // added from the admin panel without a lab name is still a working
+            // link rather than an empty one.
+            const label = report.lab ?? report.batch ?? "See lab report";
+            const showBatch = report.batch && report.lab;
+
+            return (
+              <a
+                key={report.id}
+                href={report.fileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group inline-flex flex-wrap items-baseline gap-x-2 gap-y-0.5"
+              >
+                <span className="text-sm font-bold uppercase tracking-wide underline underline-offset-4 decoration-2 group-hover:text-[#a89800]">
+                  {label}
+                </span>
+                {showBatch && (
+                  <span className="text-xs text-black/45 group-hover:text-black/70">
+                    Batch {report.batch}
+                  </span>
+                )}
+              </a>
+            );
+          })}
         </div>
       </div>
     </article>
