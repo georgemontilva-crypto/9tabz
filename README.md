@@ -188,7 +188,10 @@ escriben los campos que se rellenan, así que cambiar el producto de un lote no
 resetea de paso el cupo de códigos ya usados a medias.
 
 Es idempotente y aditivo: un producto cuyo slug ya existe se deja intacto, y un
-reporte cuya URL ya está registrada no se vuelve a insertar. Correrlo de nuevo
+reporte se reconoce **por su lote**, no por su URL. La URL de un reporte se
+mueve (al pasarlo a R2, o al reemplazar el PDF desde el panel), así que
+emparejar por URL hacía que el seed no reconociera un reporte ya cargado y
+creara una segunda fila para el mismo lote. Correrlo de nuevo
 sobre una base que el cliente ya editó no deshace su trabajo.
 
 Un COA nuevo **no retira** al anterior: una unidad comprada el mes pasado se

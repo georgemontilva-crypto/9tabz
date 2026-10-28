@@ -163,6 +163,7 @@ const PRODUCTS: Seed[] = [
 export async function seedCatalog(): Promise<void> {
   let createdProducts = 0;
   let createdReports = 0;
+  let removedReports = 0;
 
   if (!(await db.getProductBySlug(VERIFICATION_PRODUCT.slug))) {
     await db.createProduct({
@@ -214,17 +215,48 @@ export async function seedCatalog(): Promise<void> {
 
     for (let order = 0; order < seed.reports.length; order++) {
       const report = seed.reports[order];
-      const already = existing.find((r) => r.fileUrl === report.url);
 
-      if (already) {
-        // Earlier runs filed the SD round with no lab name, back when it was
-        // the only one. Now that the card labels each link by lab, a blank one
-        // would render as an unidentified second link.
-        if (!already.lab) {
-          await db.updateLabReport(already.id, { lab: report.lab, sortOrder: order });
+      /*
+       * Matched on batch, not on URL.
+       *
+       * A report's URL moves: mirroring it into R2 rewrites it, and so does
+       * replacing the PDF from the admin panel. Matching on URL meant the seed
+       * stopped recognising a report it had already filed and created a second
+       * row for the same batch — which is how a flavour ended up with three
+       * links, one of them unlabelled.
+       *
+       * The batch is the thing printed on the package and the thing that
+       * actually identifies the document.
+       */
+      const sameBatch = existing.filter((r) => r.batch === report.batch);
+
+      // Prefer a copy in our own bucket over one linked elsewhere: it is the
+      // one that survives the other host going away.
+      const keeper =
+        sameBatch.find((r) => r.fileKey) ??
+        sameBatch.sort((a, b) => a.id - b.id)[0];
+
+      if (keeper) {
+        if (!keeper.lab || keeper.sortOrder !== order) {
+          await db.updateLabReport(keeper.id, { lab: report.lab, sortOrder: order });
           console.log(`~ report   ${report.lab} / ${report.batch} (labelled)`);
         } else {
           console.log(`= report   ${report.lab} / ${report.batch} (already present)`);
+        }
+
+        /*
+         * Remove the extras this seed created for the same batch. Scoped hard:
+         * only rows whose URL is one we wrote and that hold no file of ours, so
+         * a report an admin uploaded is never deleted and nothing leaves the
+         * bucket.
+         */
+        for (const dupe of sameBatch) {
+          if (dupe.id === keeper.id) continue;
+          if (dupe.fileKey) continue;
+          if (dupe.fileUrl !== report.url) continue;
+          await db.deleteLabReport(dupe.id);
+          removedReports++;
+          console.log(`- report   ${report.batch} (duplicate row removed)`);
         }
         continue;
       }
@@ -250,7 +282,8 @@ export async function seedCatalog(): Promise<void> {
   }
 
   console.log(
-    `[Seed] Done. ${createdProducts} product(s) and ${createdReports} report(s) added.`
+    `[Seed] Done. ${createdProducts} product(s) and ${createdReports} report(s) added, ` +
+      `${removedReports} duplicate report row(s) removed.`
   );
 }
 
