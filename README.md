@@ -194,7 +194,7 @@ sobre una base que el cliente ya editó no deshace su trabajo.
 Un COA nuevo **no retira** al anterior: una unidad comprada el mes pasado se
 analizó bajo el lote viejo, y quitar ese reporte dejaría a quien la tenga sin
 poder comprobar lo que realmente compró. Por eso los reportes se acumulan y la
-tarjeta los lista uno al lado del otro, etiquetados por laboratorio.
+tarjeta los lista uno por línea, etiquetados por laboratorio.
 
 Los de **SD Pharmlab** se enlazan donde ya viven
 (`get9tabz.com/wp-content/uploads/...`). Los de **NN Analytics** viajan en el

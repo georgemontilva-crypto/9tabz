@@ -95,12 +95,14 @@ function ProductCard({ product }: { product: Product }) {
         )}
 
         {/*
-          Reports sit side by side and wrap, rather than stacking one per row.
-          Each round of testing is equally current for whoever is holding that
-          batch, so a vertical list would read as a history with the newest on
-          top — and send someone with an older unit to the wrong report.
+          One report per line. Side by side, the lab names sat on the same row
+          as the wrapped tail of the subtitle, so a card with two reports read
+          as three stacked items and it was not clear which were links.
+
+          `items-start` keeps each link's underline the width of its own text
+          rather than the column.
         */}
-        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
+        <div className="mt-4 flex flex-col items-start gap-1.5">
           {product.reports.map((report) => (
             <a
               key={report.id}
