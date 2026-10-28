@@ -48,19 +48,68 @@ export default function AdminCodes() {
     onError: (e) => toast.error(e.message || "Could not add code"),
   });
 
-  const bulk = trpc.codes.adminBulkImport.useMutation({
-    onSuccess: (r) => {
-      refresh();
+  const bulk = trpc.codes.adminBulkImport.useMutation();
+
+  /**
+   * Codes per request.
+   *
+   * A real batch file runs to hundreds of thousands of codes. Sent whole, the
+   * request carries several megabytes and the server runs hundreds of queries
+   * inside it, which outlives the proxy's response timeout — the import dies
+   * with no way to tell how much of it landed. Chunked, each request is small
+   * and quick, and the progress figure is real rather than a spinner.
+   */
+  const CHUNK = 5000;
+
+  const [importProgress, setImportProgress] = useState<{
+    done: number;
+    total: number;
+  } | null>(null);
+
+  const importCodes = async (content: string) => {
+    // Split here as well as on the server, so the chunk boundaries fall between
+    // codes. Slicing the raw text would cut one in half across two requests.
+    const codes = content
+      .split(/[\r\n,;\t]+/)
+      .map((t) => t.trim().replace(/^["']|["']$/g, ""))
+      .filter((t) => t.length > 0 && !/^(id|code|codes|created|updated|product|batch)$/i.test(t));
+
+    if (codes.length === 0) {
+      toast.error("No codes found in that file");
+      return;
+    }
+
+    let processed = 0;
+    let skipped = 0;
+    setImportProgress({ done: 0, total: codes.length });
+
+    try {
+      for (let i = 0; i < codes.length; i += CHUNK) {
+        const slice = codes.slice(i, i + CHUNK);
+        const r = await bulk.mutateAsync({ content: slice.join("\n"), ...common() });
+        processed += r.processed;
+        skipped += r.skipped;
+        setImportProgress({ done: Math.min(i + CHUNK, codes.length), total: codes.length });
+      }
+
       setPasted("");
       if (fileRef.current) fileRef.current.value = "";
       toast.success(
-        r.skipped > 0
-          ? `Imported ${r.processed} codes (${r.skipped} already existed and were left untouched)`
-          : `Imported ${r.processed} codes`
+        skipped > 0
+          ? `Imported ${processed} codes (${skipped} already existed and were left untouched)`
+          : `Imported ${processed} codes`
       );
-    },
-    onError: (e) => toast.error(e.message || "Import failed"),
-  });
+    } catch (e: any) {
+      // Whatever already went through stays in. The import skips codes that
+      // exist, so re-running the same file picks up only what is missing.
+      toast.error(
+        `${e?.message || "Import failed"} — ${processed} code(s) were imported before it stopped. Re-running the same file will add the rest.`
+      );
+    } finally {
+      setImportProgress(null);
+      refresh();
+    }
+  };
 
   const del = trpc.codes.adminDelete.useMutation({
     onSuccess: () => {
@@ -139,7 +188,7 @@ export default function AdminCodes() {
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    bulk.mutate({ content: await file.text(), ...common() });
+    await importCodes(await file.text());
   };
 
   return (
@@ -188,13 +237,14 @@ export default function AdminCodes() {
       <div className="mt-5 grid gap-5 lg:grid-cols-2">
         <Card
           title="Import codes"
-          description="Upload a CSV or TXT file, or paste a list. One code per line or comma-separated. Codes that already exist are skipped, never reset."
+          description="Upload a CSV or TXT file, or paste a list. One code per line or comma-separated. Large files are sent in blocks of 5,000; codes that already exist are skipped, never reset."
         >
           <input
             ref={fileRef}
             type="file"
             accept=".csv,.txt,text/plain,text/csv"
             onChange={onFile}
+            disabled={!!importProgress}
             className="block w-full text-sm text-neutral-600 file:mr-3 file:rounded-lg file:border-0 file:bg-neutral-950 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-neutral-800"
           />
           <textarea
@@ -204,12 +254,33 @@ export default function AdminCodes() {
             placeholder={"ABCD12345\nABCD12346\nABCD12347"}
             className={`${inputClass} mt-3 font-mono`}
           />
+          {importProgress && (
+            <div className="mt-3">
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-neutral-200">
+                <div
+                  className="h-full bg-neutral-900 transition-all"
+                  style={{
+                    width: `${Math.round((importProgress.done / importProgress.total) * 100)}%`,
+                  }}
+                />
+              </div>
+              <p className="mt-1.5 text-xs tabular-nums text-neutral-500">
+                {importProgress.done.toLocaleString()} of{" "}
+                {importProgress.total.toLocaleString()} codes — keep this tab open
+              </p>
+            </div>
+          )}
+
           <button
-            onClick={() => pasted.trim() && bulk.mutate({ content: pasted, ...common() })}
-            disabled={bulk.isPending || !pasted.trim()}
+            onClick={() => pasted.trim() && importCodes(pasted)}
+            disabled={!!importProgress || !pasted.trim()}
             className={`${buttonClass} mt-3`}
           >
-            {bulk.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+            {importProgress ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
             Import pasted list
           </button>
         </Card>
